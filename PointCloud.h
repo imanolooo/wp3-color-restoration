@@ -13,7 +13,7 @@
 class PointCloud {
 public:
     PointCloud() { ; }
-    explicit PointCloud(const QImage img);
+    explicit PointCloud(const QImage img, const QImage mask);
 
     void addPoint(Point& p);
     void transform(ColorTransformation &ct);

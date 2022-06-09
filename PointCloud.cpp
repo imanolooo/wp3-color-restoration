@@ -4,27 +4,60 @@
 
 #include "PointCloud.h"
 #include "happly.h"
+#include <color.hpp>
 
-PointCloud::PointCloud(const QImage img) {
+PointCloud::PointCloud(const QImage img, const QImage mask) {
     _points.reserve(img.width()*img.height());
     std::vector<std::vector<std::vector<bool>>> rgb(256, std::vector<std::vector<bool>>(256, std::vector<bool>(256,false)));
+    std::vector<std::vector<int>> lab_count(std::vector<std::vector<int>>(256, std::vector<int>(256,0)));
 
     int width = img.width();
     int height = img.height();
     for(auto i = 0; i < width; ++i) {
         for (auto j = 0; j < height; ++j) {
             //TODO: use a mask instead of alpha
-            if(qAlpha(img.pixel(i,j)) == 255) {
-                int r = qRed(img.pixel(i,j));
-                int g = qGreen(img.pixel(i,j));
-                int b = qBlue(img.pixel(i,j));
-
-                rgb[r][g][b] = true;
-
-               // _points.push_back(Point(r/255.f, g/255.f, b/255.f, r/255.f, g/255.f, b/255.f));
+            if((mask.width() != 0 && mask.height() != 0 && qRed(mask.pixel(i,j)) != 255) || (mask.width() == 0 && mask.height() == 0 && qAlpha(img.pixel(i,j)) != 255)) {
+                continue;
             }
+
++++            int r = qRed(img.pixel(i,j));
+            int g = qGreen(img.pixel(i,j));
+            int b = qBlue(img.pixel(i,j));
+
+            rgb[r][g][b] = true;
+            //rgb
+           // _points.push_back(Point(r/255.f, g/255.f, b/255.f, r/255.f, g/255.f, b/255.f));
+
+            color::rgb<float> c_rgb( { r/255.f, g/255.f, b/255.f});
+            color::lab<float> lab;
+            lab = c_rgb;
+            lab_count[(int)lab[1]+127][(int)lab[2]+127] = lab_count[(int)lab[1]+127][(int)lab[2]+127] + 1;
         }
     }
+
+    for(auto i = 0; i < 256; ++i) {
+        for(auto j = 0; j < 256; ++j) {
+            std::cout << i-127 << ", ";
+        }
+    }
+    std::cout << std::endl << std::endl;
+
+    for(auto i = 0; i < 256; ++i) {
+        for(auto j = 0; j < 256; ++j) {
+            std::cout << j-127 << ", ";
+        }
+    }
+    std::cout << std::endl << std::endl;
+
+    for(auto i = 0; i < 256; ++i) {
+        for(auto j = 0; j < 256; ++j) {
+            std::cout << lab_count[i][j] << ", ";
+        }
+    }
+    std::cout << std::endl << std::endl;
+
+    exit(1);
+
 
     //alternative create _points from rgb, to have only one point per color.
     for(auto r = 0; r < 256; ++r) {

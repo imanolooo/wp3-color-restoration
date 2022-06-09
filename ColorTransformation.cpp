@@ -3,6 +3,7 @@
 //
 
 #include <cassert>
+#include <QElapsedTimer>
 #include "ColorTransformation.h"
 
 ColorTransformation::ColorTransformation() {
@@ -54,10 +55,13 @@ void ColorTransformation::computeBiharmonicCoordinates() {
         S.push_back({cp.first});
     }
     //For 3D k needs to be 3.
-    int k = 3;
+    int k = 2;
 
-
+    QElapsedTimer timer;
+    timer.start();
+    std::cout << "Computing biharmonic coordinates... " << std::endl;
     igl::biharmonic_coordinates(V,T,S,k,_W);
+    std::cout << "Done in " << timer.elapsed() << std::endl;
 
 }
 

@@ -36,6 +36,7 @@ public slots:
     void on_actionZoom_out_triggered();
 
     void on_actionColor_Transformation_triggered();
+    void on_actionCompute_LAB_triggered();
 
     void currentColorChanged(QString text);
     void changeFinalColor();
@@ -46,7 +47,7 @@ private:
 
     std::map<std::string, std::vector<PickedColor>> _pickedColors;
     Ui::MainWindow *ui;
-    QImage _image;
+    QImage _image, _maskImage;
     QLabel * _imageLabel;
     double _scaleFactor;
 };

@@ -12,7 +12,7 @@
 #include "ui_MainWindow.h"
 #include "PointCloud.h"
 #include "ColorTransformation.h"
-
+#include <color.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -202,6 +202,21 @@ void MainWindow::on_actionLoad_Image_triggered() {
     _image = newImage;
     _imageLabel->setPixmap(QPixmap::fromImage(_image));
 
+    //loading mask if exist
+    fileName.insert(fileName.lastIndexOf("."), "-mask");
+    std::cout << fileName.toStdString() << std::endl;
+    QImageReader maskReader(fileName);
+
+    const QImage maskImage = maskReader.read();
+    if(maskImage.isNull()) {
+        std::cout << "No mask image found!" << std::endl;
+    } else {
+        _maskImage = maskImage;
+    }
+
+    std::cout << _maskImage.width() << " " << _maskImage.height() << std::endl;
+
+
     ui->scrollAreaImage->setBackgroundRole(QPalette::Dark);
     ui->scrollAreaImage->setWidget(_imageLabel);
     ui->scrollAreaImage->setVisible(true);
@@ -214,7 +229,7 @@ void MainWindow::on_actionExport_Image_to_PLY_triggered() {
     QString fileName = QFileDialog::getSaveFileName(this,
                                                     tr("Export Image to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
 
-    PointCloud pc(_image);
+    PointCloud pc(_image, _maskImage);
 
     //add the picked colours
     for (auto const& pickCol : _pickedColors) {
@@ -284,10 +299,33 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     colorTransf.updateColorTransformation();
 
     //Transform the point cloud.
-    PointCloud pc(_image);
+    PointCloud pc(_image, _maskImage);
     pc.transform(colorTransf);
 
     pc.exportToPLY(fileName.toStdString());
+}
+
+void MainWindow::on_actionCompute_LAB_triggered() {
+    for(auto &pc : _pickedColors) {
+        std::cout << pc.first << "\t";//std::endl;
+        std::vector<float> avg(3,0);
+        int counter = 0;
+        for(auto &c : pc.second) {
+            std::vector<float> color = {c.red(), c.green(), c.blue()};
+            avg[0] += color[0];
+            avg[1] += color[1];
+            avg[2] += color[2];
+            counter++;
+        }
+        avg[0] /= counter;
+        avg[1] /= counter;
+        avg[2] /= counter;
+        std::cout << avg[0] << "\t" << avg[1] << "\t" << avg[2] << "\t";
+        color::rgb<float> rgb( { avg[0]/255.f, avg[1]/255.f, avg[2]/255.f});
+        color::lab<float> lab;
+        lab = rgb;
+        std::cout << lab[0] << "\t" << lab[1] << "\t" << lab[2] << std::endl;
+    }
 }
 
 

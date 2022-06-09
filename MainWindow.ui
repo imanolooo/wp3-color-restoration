@@ -104,6 +104,7 @@
      <string>Transform</string>
     </property>
     <addaction name="actionColor_Transformation"/>
+    <addaction name="actionCompute_LAB"/>
    </widget>
    <addaction name="menuLoad_Image"/>
    <addaction name="menuView"/>
@@ -144,6 +145,11 @@
   <action name="actionColor_Transformation">
    <property name="text">
     <string>Color Transformation...</string>
+   </property>
+  </action>
+  <action name="actionCompute_LAB">
+   <property name="text">
+    <string>Compute LAB...</string>
    </property>
   </action>
  </widget>
