@@ -290,11 +290,19 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     }
 
     controlPoints.clear();
-//    controlPoints.push_back({0.1,0.1,0.1});
-//    controlPoints.push_back({0.1,1.1,1.1});
+    /*  ncp(0,0) = -1;  ncp(0,1) = -1;  ncp(0,2) = 0;
+    ncp(1,0) =  1;  ncp(1,1) = -1;  ncp(1,2) = 0;
+    ncp(2,0) = -1;  ncp(2,1) =  1;  ncp(2,2) = 0;
+    ncp(3,0) =  1;  ncp(3,1) =  1;  ncp(3,2) = 0;*/
+    controlPoints.push_back({0,-1.1,-1.1});
+    controlPoints.push_back({0,1,-1.1});
+    controlPoints.push_back({0,-0.9,1});
+    controlPoints.push_back({0,0.9,0.9});
     std::vector<std::vector<float>> newControlPoints;
-//    newControlPoints.push_back({0.1, 0.4,0.1});
-//    newControlPoints.push_back({0.1, 1.3, 1.3});
+    newControlPoints.push_back({0,-1.4,-1.4});
+    newControlPoints.push_back({0,1,-1.4});
+    newControlPoints.push_back({0,-0.9,1});
+    newControlPoints.push_back({0,0.9,0.9});
     test2D.initControlPoints(controlPoints, newControlPoints);
     std::vector<float> p({-0.75,-0.75, 0});
     std::vector<float> pt;
