@@ -123,94 +123,77 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
         std::cout << "v " << _verticesTransformed(i,0) << " " << _verticesTransformed(i,1) << " " << _verticesTransformed(i, 2) << std::endl;
 }
 
-void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<float> &pTransformed) const {
-    //TODO Consider the case that we sample a cell that contains a control point.
+ColorTransformation2D::BarycentricInfo ColorTransformation2D::FindBarycentricInfo(const std::vector<float>& p, int indexC) const{
+	for (auto j = -1; j < 2; ++j) {
+		for (auto i = -1; i < 2; ++i) {
+			auto const currentIndexC = indexC + i + j * (_width - 1);
+			auto const outOfBounds = currentIndexC < 0 || currentIndexC >= (_width - 1) * (_height - 1);
+			if (outOfBounds)
+				continue;
+			auto const currentIndexF = currentIndexC * 2;
+			auto const iv0 = _faces(currentIndexF, 0);
+			auto const iv1 = _faces(currentIndexF, 1);
+			auto const iv2 = _faces(currentIndexF, 2);
+			auto const barycentricResult = computeBarycentricCoordinates(_vertices.row(iv0), _vertices.row(iv1), _vertices.row(iv2),
+				Eigen::Vector3d(p[0], p[1], 0));
+			if (barycentricResult.has_value())
+            {
+				return std::make_tuple(Eigen::Vector3i(iv0, iv1, iv2),barycentricResult.value());
+            }
+		}
+	}
+	throw new std::exception("could not find barycentric coordinates or whatever");
+}
 
-    int i = std::floor((p[0]-_origin[0])/_step);
-    int j = std::floor((p[1]-_origin[1])/_step);
-    int indexC = j*(_width-1)+i;
+void ColorTransformation2D::sample(const std::vector<float>& p, std::vector<float>& pTransformed) const {
+	//TODO Consider the case that we sample a cell that contains a control point.
 
-    float u,v;
-    int iv0, iv1, iv2;
+	auto const i = static_cast<int>(std::floor((p[0] - _origin[0]) / _step));
+	auto const j = static_cast<int>(std::floor((p[1] - _origin[1]) / _step));
+	auto const indexC = j * (_width - 1) + i;
+	auto const foundIndexes = FindBarycentricInfo(p, indexC);
 
-    for(auto j = -1; j < 2; ++j) {
-        for(auto i = -1; i < 2; ++i) {
-            int currentIndexC = indexC + i + j*(_width-1);
-            if(currentIndexC < 0 || currentIndexC >= (_width-1)*(_height-1))
-                continue;
-
-            int currentIndexF = currentIndexC*2;
-            iv0 = _faces(currentIndexF,0);
-            iv1 = _faces(currentIndexF,1);
-            iv2 = _faces(currentIndexF,2);
-
-            if(computeBarycentricCoordinates(_vertices.row(iv0), _vertices.row(iv1), _vertices.row(iv2),
-                                             Eigen::Vector3d(p[0], p[1], 0), u, v))
-                break;
-        }
-    }
-    /*
-    //determine in which triangle lies the point. Use the determinant between diagonal and bl-p vectors.
-    // >=0 first triangle, <0 second triangle
-    int indexBL = j*_width + _width + i;//index bottom left point
-    Eigen::Vector2f diagonal(_vertices(index+1,0) - _vertices(indexBL,0),
-                             _vertices(index+1,1) - _vertices(indexBL,1));
-    Eigen::Vector2f bl_p(p[0]-_vertices(indexBL,0),
-                         p[1]-_vertices(indexBL,1));
-    Eigen::Matrix2f m;
-    m << bl_p , diagonal;
-    float u,v;
-
-    int iv0, iv1, iv2;
-    if(m.determinant() >= 0) { //upper triangle
-        iv0 = indexBL;
-        iv1 = index+1;
-        iv2 = index;
-    } else { //downer triangle
-        iv0 = indexBL;
-        iv1 = indexBL+1;
-        iv2 = index+1;
-    }
-    computeBarycentricCoordinates(_vertices.row(iv0), _vertices.row(iv1), _vertices.row(iv2),
-                                  Eigen::Vector3d(p[0], p[1], 0), u, v);
-*/
-
-    Eigen::Vector3d transformed = u*_verticesTransformed.row(iv0) + v*_verticesTransformed.row(iv1) + (1-u-v)*_verticesTransformed.row(iv2);
-    std::cout << "Original point " << std::endl << Eigen::Vector3d(p[0], p[1], 0) << std::endl;
-    std::cout << "Transformed point " << std::endl << transformed << std::endl;
-    pTransformed = {transformed(0), transformed(1), transformed(2)};
+    auto const vertexIndexes = std::get<0>(foundIndexes);
+    auto const uvCoords = std::get<1>(foundIndexes);
+    auto const m0 = uvCoords.x()*_verticesTransformed.row(vertexIndexes.x());
+    auto const m1 = uvCoords.y()*_verticesTransformed.row(vertexIndexes.y());
+    auto const m2 = (1-uvCoords.x()-uvCoords.y())*_verticesTransformed.row(vertexIndexes.z());
+    auto const transformed = m0+m1+m2; ;
+	std::cout << "Original point " << std::endl << Eigen::Vector3d(p[0], p[1], 0) << std::endl;
+	std::cout << "Transformed point " << std::endl << transformed << std::endl;
+	pTransformed = { (float)transformed(0), (float)transformed(1), (float)transformed(2) };
 
 }
 
-bool ColorTransformation2D::computeBarycentricCoordinates(const Eigen::Vector3d &v0, const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
-                                                          const Eigen::Vector3d &p, float &u, float &v) const {
-    //from https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/barycentric-coordinates
-    Eigen::Vector3d v0v1 = v1 - v0;
-    Eigen::Vector3d v0v2 = v2 - v0;
-    Eigen::Vector3d v0p  =  p - v0;
-    Eigen::Vector3d v1v2 = v2 - v1;
-    Eigen::Vector3d v1p  =  p - v1;
-    Eigen::Vector3d v2v0 = v0 - v2;
-    Eigen::Vector3d v2p  =  p - v2;
+std::optional<Eigen::Vector2f> ColorTransformation2D::computeBarycentricCoordinates(const Eigen::Vector3d& v0, const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
+	const Eigen::Vector3d& p) const {
+	//from https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/barycentric-coordinates
+	auto const v0v1 = v1 - v0;
+	auto const v0v2 = v2 - v0;
+	auto const v0p = p - v0;
+	auto const v1v2 = v2 - v1;
+	auto const v1p = p - v1;
+	auto const v2v0 = v0 - v2;
+	auto const v2p = p - v2;
 
-    Eigen::Vector3d N = v0v1.cross(v0v2);
-    Eigen::Vector3d C = v0v1.cross(v0p);
-    if(N.dot(C) < 0)    return false;
+	auto const N = v0v1.cross(v0v2);
+	auto const C = v0v1.cross(v0p);
+	if (N.dot(C) < 0)    return {};
 
-    float denom = N.dot(N);
+	auto const denom = N.dot(N);
 
-    Eigen::Vector3d C1 = v1v2.cross(v1p);
-    u = N.dot(C1);
-    if(u < 0)   return false;
+	Eigen::Vector3d C1 = v1v2.cross(v1p);
+	auto u = N.dot(C1);
+	if (u < 0)   return {};
 
-    Eigen::Vector3d C2 = v2v0.cross(v2p);
-    v = N.dot(C2);
-    if(v < 0)   return false;
+	Eigen::Vector3d C2 = v2v0.cross(v2p);
+	auto v = N.dot(C2);
+	if (v < 0)   return {};
 
-    u /= denom;
-    v/= denom;
-
-    return true;
+	u /= denom;
+	v /= denom;
+	auto val = Eigen::Vector2f(u, v);
+	return std::make_optional<Eigen::Vector2f>(val);
 }
 
 
