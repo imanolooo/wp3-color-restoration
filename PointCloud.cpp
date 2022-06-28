@@ -20,7 +20,7 @@ PointCloud::PointCloud(const QImage img, const QImage mask) {
                 continue;
             }
 
-+++            int r = qRed(img.pixel(i,j));
+            int r = qRed(img.pixel(i,j));
             int g = qGreen(img.pixel(i,j));
             int b = qBlue(img.pixel(i,j));
 

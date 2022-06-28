@@ -12,6 +12,7 @@
 #include "ui_MainWindow.h"
 #include "PointCloud.h"
 #include "ColorTransformation.h"
+#include "ColorTransformation2D.h"
 #include <color.hpp>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -276,13 +277,37 @@ void MainWindow::on_actionFit_in_view_triggered() {
 }
 
 void MainWindow::on_actionColor_Transformation_triggered() {
+    ColorTransformation2D test2D(5, 5, 1);
+    std::vector<std::vector<float>> controlPoints;
+    for(auto &pc : _pickedColors) {
+        //TODO: Compute aa color representing the picked colors (now is the first)
+        std::cout << pc.first << std::endl;
+        color::rgb<float> rgb( { pc.second[0].red()/255.f, pc.second[0].green()/255.f, pc.second[0].blue()/255.f});
+        color::lab<float> lab;
+        lab = rgb;
+        std::vector<float> color = {lab[0], lab[1], lab[2]};
+        controlPoints.push_back(color);
+    }
+
+    controlPoints.clear();
+//    controlPoints.push_back({0.1,0.1,0.1});
+//    controlPoints.push_back({0.1,1.1,1.1});
+    std::vector<std::vector<float>> newControlPoints;
+//    newControlPoints.push_back({0.1, 0.4,0.1});
+//    newControlPoints.push_back({0.1, 1.3, 1.3});
+    test2D.initControlPoints(controlPoints, newControlPoints);
+    std::vector<float> p({-0.75,-0.75, 0});
+    std::vector<float> pt;
+    test2D.sample(p,pt);
+    return;
+
     QString fileName = QFileDialog::getSaveFileName(this,
                                                     tr("Export Image to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
 
     ColorTransformation colorTransf;
 
     //setting control Points
-    std::vector<std::vector<float>> controlPoints;
+//    std::vector<std::vector<float>> controlPoints;
     for(auto &pc : _pickedColors) {
         //TODO: Compute aa color representing the picked colors (now is the first)
         std::cout << pc.first << std::endl;
