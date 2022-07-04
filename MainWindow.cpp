@@ -304,8 +304,10 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     newControlPoints.push_back({0,-0.9,1});
     newControlPoints.push_back({0,0.9,0.9});
     test2D.initControlPoints(controlPoints, newControlPoints);
-    std::vector<float> p({-0.75,-0.75, 0});
+    std::vector<float> p({0,-0.75,-0.75});
     std::vector<float> pt;
+    test2D.sample(p,pt);
+    p = {0, 1.2, -1.2};
     test2D.sample(p,pt);
     return;
 

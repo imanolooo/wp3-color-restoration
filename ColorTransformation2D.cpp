@@ -16,9 +16,9 @@ ColorTransformation2D::ColorTransformation2D(const int width, const int height, 
     auto index = 0;
     for(float j = -height/2; j <= height/2; j+=step) {
         for(float i = -width/2; i <= width/2; i+=step) {
-            _vertices(index,0) = i;
-            _vertices(index,1) = j;
-            _vertices(index,2) = 0;
+            _vertices(index,0) = 0;
+            _vertices(index,1) = i;
+            _vertices(index,2) = j;
             index++;
         }
     }
@@ -69,7 +69,7 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
         int tr = tl + 1;
         int bl = tl + _width;
         int br = bl + 1;
-        Eigen::Vector3d ep(p[1],p[2],0);
+        Eigen::Vector3d ep(p[0], p[1],p[2]);
         float dtl = (Eigen::Vector3d(_vertices.row(tl)) - ep).norm();
         float dtr = (Eigen::Vector3d(_vertices.row(tr)) - ep).norm();
         float dbl = (Eigen::Vector3d(_vertices.row(bl)) - ep).norm();
@@ -112,9 +112,9 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     //TODO compute the correct ncp matrix depending on the cp modified
     Eigen::MatrixXd ncp (newcp.size(),3);
     for(auto i = 0; i < newcp.size(); ++i){
-        ncp(i,0) = newcp[i][1];
-        ncp(i,1) = newcp[i][2];
-        ncp(i,2) = 0;
+        ncp(i,0) = newcp[i][0];
+        ncp(i,1) = newcp[i][1];
+        ncp(i,2) = newcp[i][2];
     }
 
     _verticesTransformed = _weights * ncp;
@@ -126,28 +126,36 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
 void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<float> &pTransformed) const {
     //TODO Consider the case that we sample a cell that contains a control point.
 
-    int i = std::floor((p[0]-_origin[0])/_step);
-    int j = std::floor((p[1]-_origin[1])/_step);
+    int i = std::floor((p[1]-_origin[0])/_step);
+    int j = std::floor((p[2]-_origin[1])/_step);
     int indexC = j*(_width-1)+i;
+    std::cout << "i " << i << " j " << j << " indexCell " << indexC << std::endl;
 
-    float u,v;
+    float u, v;
     int iv0, iv1, iv2;
+    bool found = false;
 
-    for(auto j = -1; j < 2; ++j) {
-        for(auto i = -1; i < 2; ++i) {
-            int currentIndexC = indexC + i + j*(_width-1);
-            if(currentIndexC < 0 || currentIndexC >= (_width-1)*(_height-1))
-                continue;
+    for(auto j = -1; j < 2 && !found; ++j) {
+        for(auto i = -1; i < 2 && !found; ++i) {
+            for(auto k = 0; k < 2 && !found; ++k) {
+                //TODO wrong computation of iv0, iv1 and iv2. Check what is going on!
+                int currentIndexC = indexC + i + j * (_width - 1);
+                if (currentIndexC < 0 || currentIndexC >= (_width - 1) * (_height - 1))
+                    continue;
 
-            int currentIndexF = currentIndexC*2;
-            iv0 = _faces(currentIndexF,0);
-            iv1 = _faces(currentIndexF,1);
-            iv2 = _faces(currentIndexF,2);
+                int currentIndexF = currentIndexC * 2 + k;
+                iv0 = _faces(currentIndexF, 0);
+                iv1 = _faces(currentIndexF, 1);
+                iv2 = _faces(currentIndexF, 2);
 
-            if(computeBarycentricCoordinates(_vertices.row(iv0), _vertices.row(iv1), _vertices.row(iv2),
-                                             Eigen::Vector3d(p[0], p[1], 0), u, v))
-                break;
+                found = computeBarycentricCoordinates(_vertices.row(iv0), _vertices.row(iv1), _vertices.row(iv2),
+                                                      Eigen::Vector3d(p[0], p[1], p[2]), u, v);
+            }
         }
+    }
+    if(!found) {
+        std::cout << "Failed to detect the sampling face!" << std::endl;
+        return;
     }
     /*
     //determine in which triangle lies the point. Use the determinant between diagonal and bl-p vectors.
@@ -175,8 +183,9 @@ void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<floa
                                   Eigen::Vector3d(p[0], p[1], 0), u, v);
 */
 
+    std::cout << "ivo " << iv0 << " iv1 " << iv1 << " iv2 " << iv2 << std::endl;
     Eigen::Vector3d transformed = u*_verticesTransformed.row(iv0) + v*_verticesTransformed.row(iv1) + (1-u-v)*_verticesTransformed.row(iv2);
-    std::cout << "Original point " << std::endl << Eigen::Vector3d(p[0], p[1], 0) << std::endl;
+    std::cout << "Original point " << std::endl << Eigen::Vector3d(p[0], p[1], p[2]) << std::endl;
     std::cout << "Transformed point " << std::endl << transformed << std::endl;
     pTransformed = {transformed(0), transformed(1), transformed(2)};
 
