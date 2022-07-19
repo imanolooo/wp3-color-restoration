@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QScrollBar>
 #include "PickedColor.h"
+#include "ColorTransformation2D.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -30,6 +31,8 @@ public:
 public slots:
     void on_actionLoad_Image_triggered();
     void on_actionExport_Image_to_PLY_triggered();
+    void on_actionExport_2DColorTransf_to_PLY_triggered();
+    void on_actionPrint_color_info_triggered();
 
     void on_actionFit_in_view_triggered();
     void on_actionZoom_in_triggered();
@@ -39,6 +42,8 @@ public slots:
     void on_actionCompute_LAB_triggered();
 
     void currentColorChanged(QString text);
+    void updateOriginalColorsGUI();
+    void updateFinalColorsGUI();
     void changeFinalColor();
 
 private:
@@ -46,10 +51,13 @@ private:
     void scaleImage(double factor);
 
     std::map<std::string, std::vector<PickedColor>> _pickedColors;
+    std::map<std::string, PickedColor> _avgColors;
+    std::map<std::string, PickedColor> _finalColors;
     Ui::MainWindow *ui;
     QImage _image, _maskImage;
     QLabel * _imageLabel;
     double _scaleFactor;
+    ColorTransformation2D * _ct2D;
 };
 
 

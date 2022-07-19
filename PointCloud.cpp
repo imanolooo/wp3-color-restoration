@@ -15,7 +15,6 @@ PointCloud::PointCloud(const QImage img, const QImage mask) {
     int height = img.height();
     for(auto i = 0; i < width; ++i) {
         for (auto j = 0; j < height; ++j) {
-            //TODO: use a mask instead of alpha
             if((mask.width() != 0 && mask.height() != 0 && qRed(mask.pixel(i,j)) != 255) || (mask.width() == 0 && mask.height() == 0 && qAlpha(img.pixel(i,j)) != 255)) {
                 continue;
             }

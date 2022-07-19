@@ -7,6 +7,8 @@
 #include "ColorTransformation2D.h"
 #include <igl/biharmonic_coordinates.h>
 #include <igl/readOBJ.h>
+#include <color.hpp>
+#include "happly.h"
 
 ColorTransformation2D::ColorTransformation2D(const int width, const int height, const float step) :
                         _width(width), _height(height), _step(step), _origin({(float)(-width/2), (float)(-height/2)}) {
@@ -48,14 +50,14 @@ ColorTransformation2D::ColorTransformation2D(const int width, const int height, 
         std::cout<<"failed to load mesh"<<std::endl;
     }*/
 
-    std::cout << _vertices << std::endl;
+    /*std::cout << _vertices << std::endl;
     std::cout << std::endl;
-    std::cout << _faces << std::endl;
+    std::cout << _faces << std::endl;*/
 }
 
 void ColorTransformation2D::initControlPoints(const std::vector<std::vector<float>> &cp, const std::vector<std::vector<float>> &newcp) {
-    Eigen::MatrixXd V, F;
-    std::cout << igl::readOBJ("/home/imanol/planeCP2.obj", V, F) << std::endl;
+    //Eigen::MatrixXd V, F;
+    //std::cout << igl::readOBJ("/home/imanol/planeCP2.obj", V, F) << std::endl;
 
     //DONE Check that is working with a simple example
     std::cout << "Studying the control points..." << std::endl;
@@ -94,22 +96,21 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
         S.push_back({distances[0].second});
     }
 
-    std::cout << "Vertices " << _vertices.rows() << std::endl;
+    /*std::cout << "Vertices " << _vertices.rows() << std::endl;
     for(auto i = 0; i < _vertices.rows(); ++i)
         std::cout << "v " << _vertices(i,0) << " " << _vertices(i,1) << " " << _vertices(i, 2) << std::endl;
     std::cout << "Faces " << _faces.rows() << std::endl;
     for(auto i = 0; i < _faces.rows(); ++i)
-        std::cout << "f " << _faces(i,0)+1 << " " << _faces(i,1)+1 << " " << _faces(i, 2)+1 << std::endl;
+        std::cout << "f " << _faces(i,0)+1 << " " << _faces(i,1)+1 << " " << _faces(i, 2)+1 << std::endl;*/
 
     int k = 2;
 
     QElapsedTimer timer;
     timer.start();
-    std::cout << "Computing biharmonic coordinates... " << std::endl;
-    std::cout << igl::biharmonic_coordinates(_vertices,_faces,S,k,_weights) << std::endl;
+    std::cout << "Computing biharmonic coordinates... " << std::flush;
+    std::cout << igl::biharmonic_coordinates(_vertices,_faces,S,k,_weights) << std::flush;
     std::cout << "Done in " << timer.elapsed() << std::endl;
 
-    //TODO compute the correct ncp matrix depending on the cp modified
     Eigen::MatrixXd ncp (newcp.size(),3);
     for(auto i = 0; i < newcp.size(); ++i){
         ncp(i,0) = newcp[i][0];
@@ -118,18 +119,25 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     }
 
     _verticesTransformed = _weights * ncp;
-    std::cout << "Vertices transformed" << std::endl;
+    /*std::cout << "Vertices transformed" << std::endl;
     for(auto i = 0; i < _verticesTransformed.rows(); ++i)
-        std::cout << "v " << _verticesTransformed(i,0) << " " << _verticesTransformed(i,1) << " " << _verticesTransformed(i, 2) << std::endl;
+        std::cout << "v " << _verticesTransformed(i,0) << " " << _verticesTransformed(i,1) << " " << _verticesTransformed(i, 2) << std::endl;*/
+    int counter = 0;
+    std::cout << "Original control points:" << std::endl;
+    for(auto const &p : cp) {
+        std::cout << p[0] << " " << p[1] << " " << p[2] << " ---- " << _vertices(S[counter][0],0) << " " << _vertices(S[counter][0],1) << " " << _vertices(S[counter][0],2) << std::endl;
+        counter++;
+    }
+    std::cout << "Transformed control points:" << std::endl;
+    for(auto const &p : newcp)
+        std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;
 }
 
 void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<float> &pTransformed) const {
-    //TODO Consider the case that we sample a cell that contains a control point.
-
     int i = std::floor((p[1]-_origin[0])/_step);
     int j = std::floor((p[2]-_origin[1])/_step);
     int indexC = j*(_width-1)+i;
-    std::cout << "i " << i << " j " << j << " indexCell " << indexC << std::endl;
+    //std::cout << "i " << i << " j " << j << " indexCell " << indexC << std::endl;
 
     float u, v;
     int iv0, iv1, iv2;
@@ -138,7 +146,6 @@ void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<floa
     for(auto j = -1; j < 2 && !found; ++j) {
         for(auto i = -1; i < 2 && !found; ++i) {
             for(auto k = 0; k < 2 && !found; ++k) {
-                //TODO wrong computation of iv0, iv1 and iv2. Check what is going on!
                 int currentIndexC = indexC + i + j * (_width - 1);
                 if (currentIndexC < 0 || currentIndexC >= (_width - 1) * (_height - 1))
                     continue;
@@ -183,12 +190,68 @@ void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<floa
                                   Eigen::Vector3d(p[0], p[1], 0), u, v);
 */
 
-    std::cout << "ivo " << iv0 << " iv1 " << iv1 << " iv2 " << iv2 << std::endl;
+    //std::cout << "ivo " << iv0 << " iv1 " << iv1 << " iv2 " << iv2 << std::endl;
     Eigen::Vector3d transformed = u*_verticesTransformed.row(iv0) + v*_verticesTransformed.row(iv1) + (1-u-v)*_verticesTransformed.row(iv2);
-    std::cout << "Original point " << std::endl << Eigen::Vector3d(p[0], p[1], p[2]) << std::endl;
-    std::cout << "Transformed point " << std::endl << transformed << std::endl;
+    //std::cout << "Original point " << std::endl << Eigen::Vector3d(p[0], p[1], p[2]) << std::endl;
+    //std::cout << "Transformed point " << std::endl << transformed << std::endl;
     pTransformed = {transformed(0), transformed(1), transformed(2)};
 
+}
+
+void ColorTransformation2D::export2PLY(const std::string pathOri, const std::string pathTransf) {
+    std::cout << "Saving original AB space with control points..." << std::endl;
+    std::vector<std::array<double,3>> positions;
+    std::vector<std::array<double,3>> colors;
+    std::vector<std::vector<size_t>> faces;
+
+    positions.reserve(_vertices.rows());
+    colors.reserve(_vertices.rows());
+    faces.reserve(_faces.rows());
+
+    for(auto i = 0; i < _vertices.rows(); ++i) {
+
+        positions.push_back({_vertices(i,0), _vertices(i,1), _vertices(i,2)});
+        color::lab<float> lab( { 100, _vertices(i,1), _vertices(i,2)});
+        color::rgb<float> rgb;
+        rgb = lab;
+        colors.push_back({std::min(1.f,std::max(0.f,(float)rgb[0])),
+                          std::min(1.f,std::max(0.f,(float)rgb[1])),
+                          std::min(1.f,std::max(0.f,(float)rgb[2]))});
+    }
+
+    for(auto i = 0; i < _faces.rows(); ++i)
+        faces.push_back({_faces(i,0), _faces(i,1), _faces(i,2)});
+        //std::cout << "f " << _faces(i,0)+1 << " " << _faces(i,1)+1 << " " << _faces(i, 2)+1 << std::endl;*/
+
+    happly::PLYData plyOut;
+    plyOut.addVertexPositions(positions);
+    plyOut.addVertexColors(colors);
+    plyOut.addFaceIndices(faces);
+
+    plyOut.write(pathOri, happly::DataFormat::Binary);
+
+    std::cout << "Saving original AB space with control points..." << std::endl;
+    positions.clear();
+    colors.clear();
+
+    for(auto i = 0; i < _verticesTransformed.rows(); ++i) {
+
+        positions.push_back({_verticesTransformed(i,0), _verticesTransformed(i,1), _verticesTransformed(i,2)});
+        color::lab<float> lab( { 100, _verticesTransformed(i,1), _verticesTransformed(i,2)});
+        color::rgb<float> rgb;
+        rgb = lab;
+        colors.push_back({std::min(1.f,std::max(0.f,(float)rgb[0])),
+                          std::min(1.f,std::max(0.f,(float)rgb[1])),
+                          std::min(1.f,std::max(0.f,(float)rgb[2]))});
+    }
+
+
+    happly::PLYData plyOutTransf;
+    plyOutTransf.addVertexPositions(positions);
+    plyOutTransf.addVertexColors(colors);
+    plyOutTransf.addFaceIndices(faces);
+
+    plyOutTransf.write(pathTransf, happly::DataFormat::Binary);
 }
 
 bool ColorTransformation2D::computeBarycentricCoordinates(const Eigen::Vector3d &v0, const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
@@ -232,3 +295,4 @@ void ColorTransformation2D::removeRow(Eigen::MatrixXi& matrix, unsigned int rowT
 
     matrix.conservativeResize(numRows,numCols);
 }
+

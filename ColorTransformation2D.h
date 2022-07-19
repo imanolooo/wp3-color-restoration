@@ -14,6 +14,7 @@ public:
     ColorTransformation2D(const int width, const int height, const float step = 1);
     void initControlPoints(const std::vector<std::vector<float>> &cp, const std::vector<std::vector<float>> &newcp);
     void sample(const std::vector<float> &p, std::vector<float> &pTransformed) const;
+    void export2PLY(const std::string pathOri, const std::string pathTransf);
 
 private:
     bool computeBarycentricCoordinates(const Eigen::Vector3d &v0, const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &p,
