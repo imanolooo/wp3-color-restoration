@@ -148,6 +148,7 @@
     </property>
     <addaction name="actionColor_Transformation"/>
     <addaction name="actionCompute_LAB"/>
+    <addaction name="actionPrint_Transformation_Errors"/>
    </widget>
    <addaction name="menuLoad_Image"/>
    <addaction name="menuView"/>
@@ -203,6 +204,11 @@
   <action name="actionExport_2DColorTransf_to_PLY">
    <property name="text">
     <string>Export 2DColorTransf to PLY...</string>
+   </property>
+  </action>
+  <action name="actionPrint_Transformation_Errors">
+   <property name="text">
+    <string>Print Transformation Errors...</string>
    </property>
   </action>
  </widget>

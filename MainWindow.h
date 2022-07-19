@@ -40,6 +40,7 @@ public slots:
 
     void on_actionColor_Transformation_triggered();
     void on_actionCompute_LAB_triggered();
+    void on_actionPrint_Transformation_Errors_triggered();
 
     void currentColorChanged(QString text);
     void updateOriginalColorsGUI();
