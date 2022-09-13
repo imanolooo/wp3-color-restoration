@@ -55,7 +55,7 @@ ColorTransformation2D::ColorTransformation2D(const int width, const int height, 
     std::cout << _faces << std::endl;*/
 }
 
-void ColorTransformation2D::initControlPoints(const std::vector<std::vector<float>> &cp, const std::vector<std::vector<float>> &newcp) {
+void ColorTransformation2D::initControlPoints(const std::vector<std::vector<float>> &cp, std::vector<std::vector<float>> &newcp) {
     //Eigen::MatrixXd V, F;
     //std::cout << igl::readOBJ("/home/imanol/planeCP2.obj", V, F) << std::endl;
 
@@ -95,6 +95,21 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
         //add the vertex to the control points list.
         S.push_back({distances[0].second});
     }
+
+    //fixing the boundaries
+/*    auto index = 0;
+    for(float j = -_height/2; j <= _height/2; j+=_step) {
+        for(float i = -_width/2; i <= _width/2; i+=_step) {
+            if(j == -_height/2 || j == _height/2) {
+                S.push_back({index});
+                newcp.push_back({0, i, j});
+            } else if(i == -_width/2 || i == _width/2){
+                S.push_back({index});
+                newcp.push_back({0, i, j});
+            }
+            index++;
+        }
+    }*/
 
     /*std::cout << "Vertices " << _vertices.rows() << std::endl;
     for(auto i = 0; i < _vertices.rows(); ++i)

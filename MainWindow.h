@@ -45,7 +45,11 @@ public slots:
     void currentColorChanged(QString text);
     void updateOriginalColorsGUI();
     void updateFinalColorsGUI();
-    void changeFinalColor();
+    void avgCurrentColor();
+    void changeCurrentColor();
+    void changeTargetColor();
+    void originalRadioButtonClicked(bool b);
+    void correctedRadioButtonClicked(bool b);
 
 private:
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
@@ -55,7 +59,7 @@ private:
     std::map<std::string, PickedColor> _avgColors;
     std::map<std::string, PickedColor> _finalColors;
     Ui::MainWindow *ui;
-    QImage _image, _maskImage;
+    QImage _image, _maskImage, _correctedImage;
     QLabel * _imageLabel;
     double _scaleFactor;
     ColorTransformation2D * _ct2D;

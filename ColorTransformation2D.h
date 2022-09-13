@@ -12,7 +12,7 @@
 class ColorTransformation2D {
 public:
     ColorTransformation2D(const int width, const int height, const float step = 1);
-    void initControlPoints(const std::vector<std::vector<float>> &cp, const std::vector<std::vector<float>> &newcp);
+    void initControlPoints(const std::vector<std::vector<float>> &cp, std::vector<std::vector<float>> &newcp);
     void sample(const std::vector<float> &p, std::vector<float> &pTransformed) const;
     void export2PLY(const std::string pathOri, const std::string pathTransf);
 

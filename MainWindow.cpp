@@ -13,7 +13,9 @@
 #include "ui_MainWindow.h"
 #include "PointCloud.h"
 #include "ColorTransformation.h"
+
 #include <color.hpp>
+#include <json.hpp>//https://github.com/nlohmann/json
 
 MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -38,187 +40,44 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadPickedColors() {
+    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego0922.json";
+    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego0922.json";
 
-    //White
-    _pickedColors["white"].push_back(PickedColor("white", "AbsS", 4786,6094,5,230,226,221));
-    _pickedColors["white"].push_back(PickedColor("white", "AbsN", 3420,4228,1,246,247,249));
-    _pickedColors["white"].push_back(PickedColor("white", "AbsS", 1463,2737,2,221,217,211));
-    _pickedColors["white"].push_back(PickedColor("white", "AbsC", 6686,3144,1,226,226,221));
-    //_finalColors.emplace("white",PickedColor("white", "0422", 2232, 4456, 0, 239, 240, 244));
-    _finalColors.emplace("white",PickedColor("white", "carlos", -1, -1, 0, 212, 195, 179));
-    float r = 0, g = 0, b = 0;
-    for(auto const &c : _pickedColors["white"]) {
-        r += c.red();        g += c.green();        b += c.blue();
+    std::ifstream fSrc(srcPaletteFile);
+    std::ifstream fDst(dstPaletteFile);
+    nlohmann::json dataSrc = nlohmann::json::parse(fSrc);
+    nlohmann::json dataDst = nlohmann::json::parse(fDst);
+
+    std::cout << "Reading src colors..." << std::endl;
+    for(auto const &element : dataSrc)
+    {
+        std::cout << "\t" << element << std::endl;
+        _pickedColors[element["color"]].push_back(PickedColor(element["color"], element["file"],
+                                                              element["pixel"]["x"], element["pixel"]["y"], element["kernel"],
+                                                              element["rgb"]["r"], element["rgb"]["g"], element["rgb"]["b"]));
     }
-    r /= _pickedColors["white"].size();     g /= _pickedColors["white"].size();     b /= _pickedColors["white"].size();
-    _avgColors.emplace("white",PickedColor("white", "compute", -1, -1, 0, r, g, b));
 
-
-    //Garnet
-    _pickedColors["maroon"].push_back(PickedColor("maroon", "AbsS", 3764,5481,2,115,81,76));
-    _pickedColors["maroon"].push_back(PickedColor("maroon", "AbsN", 3650,3585,1,192,143,138));
-    _pickedColors["maroon"].push_back(PickedColor("maroon", "AbsS", 1721,2691,1,135,76,75));
-    _pickedColors["maroon"].push_back(PickedColor("maroon", "AbsC", 7324,2915,3,138,73,52));
-    //_finalColors.emplace("garnet", PickedColor("garnet", "530", 3562, 1771, 0, 95, 1, 1));
-    _finalColors.emplace("maroon", PickedColor("maroon", "carlos", -1, -1, 0, 99, 28, 17));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["maroon"]) {
-        r += c.red();        g += c.green();        b += c.blue();
+    std::cout << "Computing avg colors..." << std::endl;
+    for(auto const &pc : _pickedColors) {
+        std::cout << "\t" << pc.first << std::endl;
+        float r = 0, g = 0, b = 0;
+        for(auto const& c : pc.second) {
+            r += c.red(); g += c.green(); b += c.blue();
+        }
+        r /= pc.second.size();  g /= pc.second.size(); b /= pc.second.size();
+        _avgColors.emplace(pc.first,PickedColor(pc.first, "compute", -1, -1, 0, r, g, b));
     }
-    r /= _pickedColors["maroon"].size();     g /= _pickedColors["maroon"].size();     b /= _pickedColors["maroon"].size();
-    _avgColors.emplace("maroon",PickedColor("maroon", "compute", -1, -1, 0, r, g, b));
 
-    //Light grey
-    _pickedColors["light grey"].push_back(PickedColor("light grey", "AbsS", 4655,5928,2,196,194,196));
-    _pickedColors["light grey"].push_back(PickedColor("light grey", "AbsN", 3561,4014,1,203,202,208));
-    _pickedColors["light grey"].push_back(PickedColor("light grey", "AbsS", 1223,2886,2,203,197,191));
-    _pickedColors["light grey"].push_back(PickedColor("light grey", "AbsC", 7042,3786,1,224,224,223));
-    //_finalColors.emplace("light grey", PickedColor("light grey", "0832", 4435, 2277, 0, 196, 197, 217));
-    _finalColors.emplace("light grey", PickedColor("light grey", "0832", 4435, 2277, 0, 128, 123, 125));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["light grey"]) {
-        r += c.red();        g += c.green();        b += c.blue();
+    std::cout << "Reading dst colors..." << std::endl;
+    for(auto const &element : dataDst)
+    {
+        std::cout << "\t" << element << std::endl;
+        _finalColors.emplace(element["color"], PickedColor(element["color"], element["file"],
+                                                              element["pixel"]["x"], element["pixel"]["y"], element["kernel"],
+                                                              element["rgb"]["r"], element["rgb"]["g"], element["rgb"]["b"]));
     }
-    r /= _pickedColors["light grey"].size();     g /= _pickedColors["light grey"].size();     b /= _pickedColors["light grey"].size();
-    _avgColors.emplace("light grey",PickedColor("light grey", "compute", -1, -1, 0, r, g, b));
 
-    //Medium grey
-    _pickedColors["medium grey"].push_back(PickedColor("medium grey", "AbsS", 4682,591,2,113,115,126));
-    _pickedColors["medium grey"].push_back(PickedColor("medium grey", "AbsN", 3600,3936,3,200,193,194));
-    _pickedColors["medium grey"].push_back(PickedColor("medium grey", "AbsS", 1171,3019,3,171,171,175));
-    _pickedColors["medium grey"].push_back(PickedColor("medium grey", "AbsC", 6777,3092,2,182,181,175));
-    //_finalColors.emplace("dark grey", PickedColor("dark grey", "0832", 4385, 1778, 0, 82, 80, 94));
-    _finalColors.emplace("medium grey", PickedColor("medium grey", "carlos", -1, -1, 0, 44, 43, 56));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["medium grey"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["medium grey"].size();     g /= _pickedColors["medium grey"].size();     b /= _pickedColors["medium grey"].size();
-    _avgColors.emplace("medium grey",PickedColor("medium grey", "compute", -1, -1, 0, r, g, b));
-
-    //Dark grey
-    _pickedColors["dark grey"].push_back(PickedColor("dark grey", "AbsS", 4767,5874,2,86,88,102));
-    _pickedColors["dark grey"].push_back(PickedColor("dark grey", "AbsN", 3470,4059,3,159,156,162));
-    _pickedColors["dark grey"].push_back(PickedColor("dark grey", "AbsS", 1686,2807,1,146,145,152));
-    _pickedColors["dark grey"].push_back(PickedColor("dark grey", "AbsC", 6908,2994,3,80,86,93));
-    //_finalColors.emplace("medium grey", PickedColor("medium grey", "0469", 2347, 607, 0, 191, 189, 194));
-    _finalColors.emplace("dark grey", PickedColor("dark grey", "carlos", -1, -1, 0, 33, 32, 32));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["dark grey"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["dark grey"].size();     g /= _pickedColors["dark grey"].size();     b /= _pickedColors["dark grey"].size();
-    _avgColors.emplace("dark grey",PickedColor("dark grey", "compute", -1, -1, 0, r, g, b));
-
-    //Black
-    _pickedColors["black"].push_back(PickedColor("black", "AbsS", 462,4625,3,71,70,75));
-    _pickedColors["black"].push_back(PickedColor("black", "AbsN", 3222,3379,1,122,124,140));
-    _pickedColors["black"].push_back(PickedColor("black", "AbsS", 1265,2801,1,93,92,102));
-    _pickedColors["black"].push_back(PickedColor("black", "AbsC", 7333,3056,0,56,48,51));
-    //_finalColors.emplace("black", PickedColor("black", "0422", 2163, 2288, 0, 64, 72, 91));
-    _finalColors.emplace("black", PickedColor("black", "carlos", -1, -1, 0, 27, 21, 20));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["black"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["black"].size();     g /= _pickedColors["black"].size();     b /= _pickedColors["black"].size();
-    _avgColors.emplace("black",PickedColor("black", "compute", -1, -1, 0, r, g, b));
-
-    //Ocher
-    _pickedColors["ocher"].push_back(PickedColor("ocher", "AbsS", 3800,5256,2,204,155,95));
-    _pickedColors["ocher"].push_back(PickedColor("ocher", "AbsN", 2943,3932,1,234,200,154));
-    _pickedColors["ocher"].push_back(PickedColor("ocher", "AbsS", 1577,2645,3,173,132,91));
-    _pickedColors["ocher"].push_back(PickedColor("ocher", "AbsC", 6752,3019,1,219,162,78));
-    //_finalColors.emplace("ocher", PickedColor("ocher", "0488", 3084, 861, 0, 233, 168, 84));
-    _finalColors.emplace("ocher", PickedColor("ocher", "carlos", -1, -1, 0, 204, 158, 60));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["ocher"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["ocher"].size();     g /= _pickedColors["ocher"].size();     b /= _pickedColors["ocher"].size();
-    _avgColors.emplace("ocher",PickedColor("ocher", "compute", -1, -1, 0, r, g, b));
-
-    //Light ocher
-    _pickedColors["lighter ocher"].push_back(PickedColor("lighter ocher", "AbsS", 3944,3887,3,234,222,203));
-    _pickedColors["lighter ocher"].push_back(PickedColor("lighter ocher", "AbsN", 3629,3743,3,233,220,204));
-    _pickedColors["lighter ocher"].push_back(PickedColor("lighter ocher", "AbsS", 1225,2853,3,224,191,158));
-    _pickedColors["lighter ocher"].push_back(PickedColor("lighter ocher", "AbsC", 6702,2835,3,229,214,189));
-    //_finalColors.emplace("lighter ocher", PickedColor("lighter ocher", "0488", 3340, 900, 0, 231, 209, 172));
-    _finalColors.emplace("lighter ocher", PickedColor("lighter ocher", "carlos", -1, -1, 0, 240, 210, 164));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["lighter ocher"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["lighter ocher"].size();     g /= _pickedColors["lighter ocher"].size();     b /= _pickedColors["lighter ocher"].size();
-    _avgColors.emplace("lighter ocher",PickedColor("lighter ocher", "compute", -1, -1, 0, r, g, b));
-
-    //Pink
-    _pickedColors["pink"].push_back(PickedColor("pink", "AbsS", 3212,532,3,236,200,186));
-    _pickedColors["pink"].push_back(PickedColor("pink", "AbsN", 3311,4184,3,215,176,171));
-    _pickedColors["pink"].push_back(PickedColor("pink", "AbsS", 1609,2822,1,210,172,150));
-    _pickedColors["pink"].push_back(PickedColor("pink", "AbsC", 6636,3034,1,217,175,139));
-    //_finalColors.emplace("pink", PickedColor("pink", "0491", 2844, 2946, 0, 238, 202, 190));
-    _finalColors.emplace("pink", PickedColor("pink", "carlos", -1, -1, 0, 219, 178, 170));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["pink"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["pink"].size();     g /= _pickedColors["pink"].size();     b /= _pickedColors["pink"].size();
-    _avgColors.emplace("pink",PickedColor("pink", "compute", -1, -1, 0, r, g, b));
-
-    //Orange
-    _pickedColors["orange"].push_back(PickedColor("orange", "AbsS", 3156,3547,3,216,136,111));
-    //_finalColors.emplace("orange", PickedColor("orange", "0832", 906, 3459, 0, 239, 166, 123));
-    _finalColors.emplace("orange", PickedColor("orange", "carlos", -1, -1, 0, 255, 114, 50));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["orange"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["orange"].size();     g /= _pickedColors["orange"].size();     b /= _pickedColors["orange"].size();
-    _avgColors.emplace("orange",PickedColor("orange", "compute", -1, -1, 0, r, g, b));
-
-    //Green
-    _pickedColors["green"].push_back(PickedColor("green", "AbsN", 3730,3904,2,137,145,140));
-    _pickedColors["green"].push_back(PickedColor("green", "AbsS", 4280,3589,3,135,138,125));
-    _pickedColors["green"].push_back(PickedColor("green", "AbsN", 3883,4113,1,140,145,145));
-    _pickedColors["green"].push_back(PickedColor("green", "AbsS", 1553,2682,3,107,109,105));
-    _pickedColors["green"].push_back(PickedColor("green", "AbsC", 6323,3535,1,127,127,94));
-    //_finalColors.emplace("green", PickedColor("green", "0491", 1077, 720, 0, 106, 101, 97));
-    _finalColors.emplace("green", PickedColor("green", "carlos", -1, -1, 0, 45, 52, 47));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["green"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["green"].size();     g /= _pickedColors["green"].size();     b /= _pickedColors["green"].size();
-    _avgColors.emplace("green",PickedColor("green", "compute", -1, -1, 0, r, g, b));
-
-    //Light green
-    _pickedColors["light green"].push_back(PickedColor("light green", "AbsS", 4534,5953,2,175,183,157));
-    _pickedColors["light green"].push_back(PickedColor("light green", "AbsN", 3618,3689,1,201,196,168));
-    _pickedColors["light green"].push_back(PickedColor("light green", "AbsC", 6906,3884,1,174,178,148));
-    //_finalColors.emplace("light green", PickedColor("light green", "0104", 2003, 2886, 0, 193, 202, 181));
-    _finalColors.emplace("light green", PickedColor("light green", "carlos", -1, -1, 0, 105, 116, 87));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["light green"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["light green"].size();     g /= _pickedColors["light green"].size();     b /= _pickedColors["light green"].size();
-    _avgColors.emplace("light green",PickedColor("light green", "compute", -1, -1, 0, r, g, b));
-
-    //Red
-    _pickedColors["red"].push_back(PickedColor("red", "AbsS", 3199,5214,2,189,103,86));
-    _pickedColors["red"].push_back(PickedColor("red", "AbsN", 3239,4081,3,196,152,149));
-    _pickedColors["red"].push_back(PickedColor("red", "AbsS", 1449,2984,1,178,109,95));
-    _pickedColors["red"].push_back(PickedColor("red", "AbsC", 6855,6847,1,214,131,95));
-    //_finalColors.emplace("red", PickedColor("red", "0466", 1086, 3161, 0, 167, 64, 45));
-    _finalColors.emplace("red", PickedColor("red", "carlos", -1, -1, 0, 151, 51, 33));
-    r = 0; g = 0; b = 0;
-    for(auto const &c : _pickedColors["red"]) {
-        r += c.red();        g += c.green();        b += c.blue();
-    }
-    r /= _pickedColors["red"].size();     g /= _pickedColors["red"].size();     b /= _pickedColors["red"].size();
-    _avgColors.emplace("red",PickedColor("red", "compute", -1, -1, 0, r, g, b));
-
+    std::cout << "Adding color names to GUI..." << std::endl;
     for(const auto &color : _pickedColors)
         ui->currentColor->addItem(color.first.c_str());
 
@@ -316,8 +175,52 @@ void MainWindow::updateFinalColorsGUI() {
     ui->finalColorWithCurrentLLabel->setStyleSheet("QLabel{background-color:rgb("+r_str+","+g_str+","+b_str+"); border-radius:5}");
 }
 
-void MainWindow::changeFinalColor() {
-//TODO: Implement buttons of final and original color
+void MainWindow::avgCurrentColor() {
+    QString colorName = ui->currentColor->currentText();
+    float r = 0, g = 0, b = 0;
+    for(auto const &c : _pickedColors[colorName.toStdString()]) {
+        r += c.red(); g += c.green(); b += c.blue();
+    }
+    r /= _pickedColors[colorName.toStdString()].size(); g /= _pickedColors[colorName.toStdString()].size(); b /= _pickedColors[colorName.toStdString()].size();
+
+    _avgColors.at(colorName.toStdString()).setRed(r);
+    _avgColors.at(colorName.toStdString()).setGreen(g);
+    _avgColors.at(colorName.toStdString()).setBlue(b);
+
+    updateOriginalColorsGUI();
+}
+
+void MainWindow::changeCurrentColor() {
+    QString colorName = ui->currentColor->currentText();
+    int r = _avgColors.at(colorName.toStdString()).red();
+    int g = _avgColors.at(colorName.toStdString()).green();
+    int b = _avgColors.at(colorName.toStdString()).blue();
+
+    QColor initial(r,g,b);
+    QColor finalColor = QColorDialog::getColor(initial, this, "Select color...", QColorDialog::DontUseNativeDialog);
+
+    _avgColors.at(colorName.toStdString()).setRed(finalColor.red());
+    _avgColors.at(colorName.toStdString()).setGreen(finalColor.green());
+    _avgColors.at(colorName.toStdString()).setBlue(finalColor.blue());
+
+    updateOriginalColorsGUI();
+}
+void MainWindow::changeTargetColor() {
+    QString colorName = ui->currentColor->currentText();
+    int r = _finalColors.at(colorName.toStdString()).red();
+    int g = _finalColors.at(colorName.toStdString()).green();
+    int b = _finalColors.at(colorName.toStdString()).blue();
+
+    QColor initial(r,g,b);
+    QColor finalColor = QColorDialog::getColor(initial, this, "Select color...", QColorDialog::DontUseNativeDialog);
+
+    _finalColors.at(colorName.toStdString()).setRed(finalColor.red());
+    _finalColors.at(colorName.toStdString()).setGreen(finalColor.green());
+    _finalColors.at(colorName.toStdString()).setBlue(finalColor.blue());
+
+    updateFinalColorsGUI();
+}
+
     /*
     //showing the dialog
     QColor initial(r,g,b);
@@ -330,8 +233,6 @@ void MainWindow::changeFinalColor() {
     ui->finalColorLabel->setFixedSize(150,150);
     ui->finalColorLabel->setStyleSheet("QLabel{background-color:rgb("+r_str+","+g_str+","+b_str+"); border-radius:5}");
 */
-
-}
 
 void MainWindow::on_actionLoad_Image_triggered() {
     QString fileName = QFileDialog::getOpenFileName(this,
@@ -491,29 +392,19 @@ void MainWindow::on_actionFit_in_view_triggered() {
     double sfY = (double)ui->scrollAreaImage->height()/(double)_imageLabel->pixmap()->height();
 
     scaleImage(std::min(sfX,sfY)/_scaleFactor);
-
-
-
 }
 
 void MainWindow::on_actionColor_Transformation_triggered() {
+    ui->correctedRadioButton->setEnabled(true);
+
     _ct2D = new ColorTransformation2D(255, 255, 1);
     std::vector<std::vector<float>> sourceColors;
     std::vector<std::vector<float>> targetColors;
 
     std::cout << "Computing the color control points..." << std::endl;
-    for(auto const &pc : _pickedColors) {
-        std::cout << pc.first << std::endl;
-        float r = 0, g = 0, b = 0;
-        for(auto const& c : pc.second) {
-            r += c.red()/255.f;
-            g += c.green()/255.f;
-            b += c.blue()/255.f;
-        }
-        r /= pc.second.size();
-        g /= pc.second.size();
-        b /= pc.second.size();
-        color::rgb<float> rgb( { r, g, b});
+    for(auto const &c : _avgColors) {
+        std::cout << c.first << std::endl;
+        color::rgb<float> rgb( { c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
         color::lab<float> lab;
         lab = rgb;
         std::vector<float> color = {0/*lab[0]*/, lab[1], lab[2]};
@@ -534,11 +425,11 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     QElapsedTimer timer;
     timer.start();
     std::cout << "Transforming the image..." << std::endl;
-    QImage target = _image;
-    for(auto i = 0; i < target.width(); ++i) {
-        for(auto j = 0; j < target.height(); ++j) {
+    _correctedImage = _image;
+    for(auto i = 0; i < _correctedImage.width(); ++i) {
+        for(auto j = 0; j < _correctedImage.height(); ++j) {
             if(qRed(_maskImage.pixel(i,j)) > 128) {
-                color::rgb<float> rgb({ qRed(target.pixel(i,j))/255.f, qGreen(target.pixel(i,j))/255.f, qBlue(target.pixel(i,j))/255.f});
+                color::rgb<float> rgb({ qRed(_correctedImage.pixel(i,j))/255.f, qGreen(_correctedImage.pixel(i,j))/255.f, qBlue(_correctedImage.pixel(i,j))/255.f});
                 color::lab<float> lab;
                 lab = rgb;
                 std::vector<float> p({0/*lab[0]*/, lab[1], lab[2]});
@@ -560,7 +451,7 @@ void MainWindow::on_actionColor_Transformation_triggered() {
                     std::cout << "LAB " << lab[0] << " " << lab[1] << " " << lab[2] << std::endl;
                     std::cout << std::endl;
                 }*/
-                target.setPixelColor(i, j, QColor(std::min(255.f,std::max(0.f,rgb[0]*255)),
+                _correctedImage.setPixelColor(i, j, QColor(std::min(255.f,std::max(0.f,rgb[0]*255)),
                                                   std::min(255.f,std::max(0.f,rgb[1]*255)),
                                                   std::min(255.f,std::max(0.f,rgb[2]*255))));
             }
@@ -570,7 +461,15 @@ void MainWindow::on_actionColor_Transformation_triggered() {
 
     std::cout << "Saving the images..." << std::endl;
     _image.save("sourceImage.png");
-    target.save("targetImage.png");
+    _correctedImage.save("targetImage.png");
+
+    if(!ui->correctedRadioButton->isChecked())
+        ui->correctedRadioButton->setChecked(true);
+    else
+        correctedRadioButtonClicked(true);
+    std::cout << "Transformation finished!" << std::endl;
+
+
 
     /* TESTING THE BIHARMONICS
      * controlPoints.clear();
@@ -682,9 +581,15 @@ void MainWindow::on_actionPrint_Transformation_Errors_triggered() {
         std::cout << "\t\tB: " << std::abs(B) << std::endl;
         std::cout << "\t\tAB: " << std::sqrt(A*A + B*B) << std::endl;
     }
-
-
-
-
 }
 
+void MainWindow::originalRadioButtonClicked(bool active) {
+    if(!active) return;
+
+    _imageLabel->setPixmap(QPixmap::fromImage(_image));
+}
+void MainWindow::correctedRadioButtonClicked(bool active) {
+    if(!active) return;
+
+    _imageLabel->setPixmap(QPixmap::fromImage(_correctedImage));
+}
