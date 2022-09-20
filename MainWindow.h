@@ -54,6 +54,10 @@ public slots:
 private:
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
     void scaleImage(double factor);
+    void printInfoPickedColor(std::string colorName);
+    void printInfoVectorsColor(const std::vector<std::string> &names, const std::vector<float> &a_values, const std::vector<float> &b_values,
+                               const std::vector<std::string> &colors = std::vector<std::string>());
+    std::string rgb2HexString(unsigned int r, unsigned int g, unsigned int b);
 
     std::map<std::string, std::vector<PickedColor>> _pickedColors;
     std::map<std::string, PickedColor> _avgColors;

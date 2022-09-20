@@ -14,7 +14,7 @@
 #include "PointCloud.h"
 #include "ColorTransformation.h"
 
-#include <color.hpp>
+#include <color.hpp>//https://github.com/dmilos/color
 #include <json.hpp>//https://github.com/nlohmann/json
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -306,60 +306,78 @@ void MainWindow::on_actionPrint_color_info_triggered() {
     std::vector<std::string> names;
     std::vector<float> a_values;
     std::vector<float> b_values;
+    std::vector<std::string> colors;
 
-    std::cout << "Average colors..." << std::endl;
-    for(auto const& pc : _pickedColors) {
-        names.push_back(pc.first);
-        float r = 0, g = 0, b = 0;
-        for(auto const& c : pc.second) {
-            r += c.red()/255.f;
-            g += c.green()/255.f;
-            b += c.blue()/255.f;
-        }
-        r /= pc.second.size();
-        g /= pc.second.size();
-        b /= pc.second.size();
-        color::rgb<float> rgb( { r, g, b});
-        color::lab<float> lab;
-        lab = rgb;
-        a_values.push_back(lab[1]);
-        b_values.push_back(lab[2]);
-    }
-
-    for(auto i = 0; i < names.size(); ++i)
-        std::cout << names[i] << ", ";
-    std::cout << std::endl;
-    for(auto i = 0; i < a_values.size(); ++i)
-        std::cout << a_values[i] << ", ";
-    std::cout << std::endl;
-    for(auto i = 0; i < b_values.size(); ++i)
-        std::cout << b_values[i] << ", ";
-    std::cout << std::endl;
-
-    names.clear();
-    a_values.clear();
-    b_values.clear();
-
-
-    std::cout << "Final colors..." << std::endl;
+    std::cout << "Scale of Colors..." << std::endl;
     for(auto const& c : _finalColors) {
         names.push_back(c.first);
-        color::rgb<float> rgb( { c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
+        colors.push_back(rgb2HexString(c.second.red(), c.second.green(), c.second.blue()));
+    }
+    std::cout << "\tdomain=[";
+    auto size = names.size();
+    for(auto i = 0; i < size; ++i) {
+        std::cout << "\"" << names[i] << "\"";
+        if(size - 1 != i)   std::cout << ", ";
+    }
+    std::cout << "]," << std::endl;
+
+    std::cout << "\trange=[";
+    for(auto i = 0; i < size; ++i) {
+        std::cout << "\"" << colors[i] << "\"";
+        if(size - 1 != i)   std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << "Picked Colors..." << std::endl;
+    names.clear(); a_values.clear(); b_values.clear(); colors.clear();
+    for(auto const& pc : _pickedColors) {
+        std::string name = pc.first;
+        for(auto i = 0; i < pc.second.size(); ++i) {
+            names.push_back(name + std::to_string(i));
+            PickedColor const& c = pc.second[i];
+            color::rgb<float> rgb({ c.red()/255.f, c.green()/255.f, c.blue()/255.f});
+            color::lab<float> lab;
+            lab = rgb;
+            a_values.push_back(lab[1]);
+            b_values.push_back(lab[2]);
+            colors.push_back(name);
+        }
+    }
+    printInfoVectorsColor(names, a_values, b_values, colors);
+
+    std::cout << "Average colors..." << std::endl;
+    names.clear(); a_values.clear(); b_values.clear(); colors.clear();
+    for(auto const& c : _avgColors) {
+        names.push_back(c.first);
+        auto r = c.second.red();
+        auto g = c.second.green();
+        auto b = c.second.blue();
+        color::rgb<float> rgb( { r/255.f, g/255.f, b/255.f});
         color::lab<float> lab;
         lab = rgb;
         a_values.push_back(lab[1]);
         b_values.push_back(lab[2]);
+        //colors.push_back(rgb2HexString(r, g, b));
     }
+    printInfoVectorsColor(names, a_values, b_values, colors);
 
-    for(auto i = 0; i < names.size(); ++i)
-        std::cout << names[i] << ", ";
-    std::cout << std::endl;
-    for(auto i = 0; i < a_values.size(); ++i)
-        std::cout << a_values[i] << ", ";
-    std::cout << std::endl;
-    for(auto i = 0; i < b_values.size(); ++i)
-        std::cout << b_values[i] << ", ";
-    std::cout << std::endl;
+    std::cout << "Final colors..." << std::endl;
+    names.clear(); a_values.clear(); b_values.clear(); colors.clear();
+    for(auto const& c : _finalColors) {
+        names.push_back(c.first);
+        auto r = c.second.red();
+        auto g = c.second.green();
+        auto b = c.second.blue();
+        color::rgb<float> rgb( { r/255.f, g/255.f, b/255.f});
+        color::lab<float> lab;
+        lab = rgb;
+        a_values.push_back(lab[1]);
+        b_values.push_back(lab[2]);
+        PickedColor const& avgC = _avgColors.at(c.first);
+        //colors.push_back(rgb2HexString(avgC.red(), avgC.green(), avgC.blue()));
+    }
+    printInfoVectorsColor(names, a_values, b_values, colors);
+
 }
 
 
@@ -468,6 +486,8 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     else
         correctedRadioButtonClicked(true);
     std::cout << "Transformation finished!" << std::endl;
+
+    printInfoPickedColor("yellow ocher");
 
 
 
@@ -592,4 +612,90 @@ void MainWindow::correctedRadioButtonClicked(bool active) {
     if(!active) return;
 
     _imageLabel->setPixmap(QPixmap::fromImage(_correctedImage));
+}
+
+void MainWindow::printInfoPickedColor(std::string colorName) {
+    std::cout << "Testing " + colorName + " dispersion..." << std::endl;
+    if(_pickedColors.find(colorName) == _pickedColors.end()) {
+        std::cout << "Color not found." << std::endl;
+        return;
+    }
+    std::vector<std::string> vNames;
+    std::vector<float> vASrc, vADst;
+    std::vector<float> vBSrc, vBDst;
+    std::vector<PickedColor> & vPC = _pickedColors[colorName];
+    for(auto i = 0; i < vPC.size(); ++i) {
+        vNames.push_back(colorName+std::to_string(i));
+        color::rgb<float> rgb({ vPC[i].red()/255.f, vPC[i].green()/255.f, vPC[i].blue()/255.f});
+        color::lab<float> lab;
+        lab = rgb;
+        vASrc.push_back(lab[1]);
+        vBSrc.push_back(lab[2]);
+        std::vector<float> p({0, lab[1], lab[2]});
+        std::vector<float> pt;
+        _ct2D->sample(p, pt);
+        lab = color::lab<float>({pt[0], pt[1], pt[2]});
+        vADst.push_back(lab[1]);
+        vBDst.push_back(lab[2]);
+    }
+
+    vNames.push_back(colorName+" AVG");
+    PickedColor & pc = _avgColors.at(colorName);
+    color::rgb<float> rgb({ pc.red()/255.f, pc.green()/255.f, pc.blue()/255.f});
+    color::lab<float> lab;
+    lab = rgb;
+    vASrc.push_back(lab[1]);
+    vBSrc.push_back(lab[2]);
+    std::vector<float> p({0, lab[1], lab[2]});
+    std::vector<float> pt;
+    _ct2D->sample(p, pt);
+    lab = color::lab<float>({pt[0], pt[1], pt[2]});
+    vADst.push_back(lab[1]);
+    vBDst.push_back(lab[2]);
+
+    std::cout << "Init Colors" << std::endl;
+    printInfoVectorsColor(vNames, vASrc, vBSrc);
+
+    std::cout << "Final Colors" << std::endl;
+    printInfoVectorsColor(vNames, vADst, vBDst);
+}
+
+std::string MainWindow::rgb2HexString(unsigned int r, unsigned int g, unsigned int b) {
+    char hexColor[8];
+    std::snprintf(hexColor, sizeof hexColor, "#%02x%02x%02x", r, g, b);
+
+    return std::string(hexColor);
+}
+
+void MainWindow::printInfoVectorsColor(const std::vector<std::string> &names, const std::vector<float> &a_values, const std::vector<float> &b_values,
+                                       const std::vector<std::string> &colors) {
+    auto size = names.size();
+
+    std::cout << "\t\'Name\' : [";
+    for(auto i = 0; i < size; ++i) {
+        std::cout << "\"" << names[i] << "\"";
+        if(size - 1 != i)   std::cout << ", ";
+    }
+    std::cout << "]," << std::endl;
+
+    std::cout << "\t\'a\' : [";
+    for(auto i = 0; i < size; ++i) {
+        std::cout << a_values[i];
+        if(size - 1 != i)   std::cout << ", ";
+    }
+    std::cout << "]," << std::endl;
+
+    std::cout << "\t\'b\' : [";
+    for(auto i = 0; i < size; ++i) {
+        std::cout << b_values[i];
+        if(size - 1 != i)   std::cout << ", ";
+    }
+    std::cout << "]," << std::endl;
+
+    std::cout << "\t\'Color\' : [";
+    for(auto i = 0; i < size; ++i) {
+        std::cout << "\"" << colors[i] << "\"";
+        if(size - 1 != i)   std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
 }
