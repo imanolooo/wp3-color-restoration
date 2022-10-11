@@ -97,13 +97,26 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     }
 
     //fixing the boundaries
-/*    auto index = 0;
-    for(float j = -_height/2; j <= _height/2; j+=_step) {
+    auto index = 0;
+    /*for(float j = -_height/2; j <= _height/2; j+=_step) {
         for(float i = -_width/2; i <= _width/2; i+=_step) {
             if(j == -_height/2 || j == _height/2) {
                 S.push_back({index});
                 newcp.push_back({0, i, j});
             } else if(i == -_width/2 || i == _width/2){
+                S.push_back({index});
+                newcp.push_back({0, i, j});
+            }
+            index++;
+        }
+    }*/
+
+    /*for(float j = -15; j <= 50; j+=_step) {
+        for(float i = -15; i <= 50; i+=_step) {
+            if(j == -15 || j == 50) {
+                S.push_back({index});
+                newcp.push_back({0, i, j});
+            } else if(i == -15 || i == 50){
                 S.push_back({index});
                 newcp.push_back({0, i, j});
             }

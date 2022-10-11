@@ -40,8 +40,8 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadPickedColors() {
-    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego0922.json";
-    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego0922.json";
+    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego0922-ocherModified.json";
+    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego0922-ocherModified.json";
 
     std::ifstream fSrc(srcPaletteFile);
     std::ifstream fDst(dstPaletteFile);
@@ -490,6 +490,21 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     printInfoPickedColor("yellow ocher");
 
 
+    std::cout << "Study of the first ocher chrown of a virgin " << std::endl;
+    color::rgb<float> rgb({ 175/255.f, 130/255.f, 88/255.f});
+    std::cout << "RGB ini " << rgb[0] << " " << rgb[1] << " " << rgb[2] << std::endl;
+    color::lab<float> lab;
+    lab = rgb;
+    std::cout << "lab ini " << lab[0] << " " << lab[1] << " " << lab[2] << std::endl;
+    std::vector<float> p({0/*lab[0]*/, lab[1], lab[2]});
+    std::vector<float> pt;
+    _ct2D->sample(p, pt);
+    pt[0] = lab[0];//keeping the lightness of the source
+    lab = color::lab<float>({pt[0], pt[1], pt[2]});
+    std::cout << "lab final " << lab[0] << " " << lab[1] << " " << lab[2] << std::endl;
+    rgb = lab;
+    std::cout << "RGB final " << rgb[0] << " " << rgb[1] << " " << rgb[2] << std::endl;
+
 
     /* TESTING THE BIHARMONICS
      * controlPoints.clear();
@@ -691,6 +706,8 @@ void MainWindow::printInfoVectorsColor(const std::vector<std::string> &names, co
         if(size - 1 != i)   std::cout << ", ";
     }
     std::cout << "]," << std::endl;
+
+    if(colors.size() != size)   return;
 
     std::cout << "\t\'Color\' : [";
     for(auto i = 0; i < size; ++i) {
