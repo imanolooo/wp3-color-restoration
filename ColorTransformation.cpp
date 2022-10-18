@@ -6,15 +6,22 @@
 #include <QElapsedTimer>
 #include "ColorTransformation.h"
 
+
 ColorTransformation::ColorTransformation() {
-    _ct = CubeTetrahedron(256, 256, 256);
+    std::vector<float> dim = {2, 1, 1};
+    std::vector<float> orig = {0, 0, 0};
+    std::vector<float> res = {2, 2, 2};
+    _ct = CubeTetrahedron(dim, orig, res);
+
 
 }
 
 void ColorTransformation::setControlPoints(std::vector<std::vector<float>> &cp) {
+
     for(auto &p : cp) {
         std::pair<int, std::vector<float>> controlPoint;
-        controlPoint.first = p[0] + p[1]*_ct.width() + p[2]*_ct.width()*_ct.depth();
+        controlPoint.first = _ct.look4NearestVert(p);
+        //TODO: Update position of the vertex that will be a control point
         controlPoint.second = p;
         _cp.push_back(controlPoint);
     }
@@ -47,7 +54,7 @@ void ColorTransformation::computeBiharmonicCoordinates() {
         T(i,2) = v3;
         T(i,3) = v4;
     }
-    _ct.clearTetras();
+    //_ct.clearTetras();
 
     //S => list of lists (of dim = 1 per points, dim > 1 per regions) of indexes of control points.
     std::vector<std::vector<int>> S;
@@ -72,9 +79,9 @@ void ColorTransformation::updateColorTransformation() {
     //L => Low Res Verts
     Eigen::MatrixXd L(_cp.size(),3);
     for(auto i = 0; i < _cp.size(); ++i) {
-        V(i,0) = _cp[i].second[0];
-        V(i,1) = _cp[i].second[1];
-        V(i,2) = _cp[i].second[2];
+        L(i,0) = _cp[i].second[0];
+        L(i,1) = _cp[i].second[1];
+        L(i,2) = _cp[i].second[2];
     }
 
     V = _W * L;
@@ -85,4 +92,22 @@ void ColorTransformation::updateColorTransformation() {
 
 void ColorTransformation::sample(const int r_i, const int g_i, const int b_i, float &r_o, float &g_o, float &b_o) {
     _ct.sample(r_i, g_i, b_i, r_o, g_o, b_o);
+}
+
+void ColorTransformation::print() {
+    int numVerts = _ct.numVerts();
+    std::cout << "Num Verts: " << numVerts << std::endl;
+    for(auto i = 0; i < numVerts; ++i) {
+        float x, y, z;
+        _ct.vert(i, x, y, z);
+        std::cout << i << " => " << x << ", " << y << ", " << z << std::endl;
+    }
+
+    int numTetras = _ct.numTetras();
+    std::cout << "Num Tetras: " << numTetras << std::endl;
+    for (auto i = 0; i < numTetras; ++i) {
+        int i1, i2, i3, i4;
+        _ct.tetra(i, i1, i2, i3, i4);
+        std::cout << i << " => " << i1 << ", " << i2 << ", " << i3 << ", " << i4 << std::endl;
+    }
 }

@@ -139,6 +139,8 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     std::cout << igl::biharmonic_coordinates(_vertices,_faces,S,k,_weights) << std::flush;
     std::cout << "Done in " << timer.elapsed() << std::endl;
 
+    QElapsedTimer timerTransf;
+    timerTransf.start();
     Eigen::MatrixXd ncp (newcp.size(),3);
     for(auto i = 0; i < newcp.size(); ++i){
         ncp(i,0) = newcp[i][0];
@@ -147,6 +149,7 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     }
 
     _verticesTransformed = _weights * ncp;
+    std::cout << "Transformation in " << timerTransf.elapsed() << std::endl;
     /*std::cout << "Vertices transformed" << std::endl;
     for(auto i = 0; i < _verticesTransformed.rows(); ++i)
         std::cout << "v " << _verticesTransformed(i,0) << " " << _verticesTransformed(i,1) << " " << _verticesTransformed(i, 2) << std::endl;*/
