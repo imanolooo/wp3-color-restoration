@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>679</height>
+    <height>707</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,8 +27,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>650</width>
-           <height>613</height>
+           <width>537</width>
+           <height>641</height>
           </rect>
          </property>
         </widget>
@@ -38,6 +38,46 @@
     </item>
     <item row="0" column="1">
      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Image:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="originalRadioButton">
+          <property name="text">
+           <string>Original</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <attribute name="buttonGroup">
+           <string notr="true">buttonGroup</string>
+          </attribute>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="correctedRadioButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Corrected</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <attribute name="buttonGroup">
+           <string notr="true">buttonGroup</string>
+          </attribute>
+         </widget>
+        </item>
+       </layout>
+      </item>
       <item>
        <widget class="QComboBox" name="currentColor"/>
       </item>
@@ -49,13 +89,54 @@
        </widget>
       </item>
       <item>
+       <widget class="QGroupBox" name="originalColorGroup">
+        <property name="title">
+         <string>Current Color</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QLabel" name="originalColorLabel">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QPushButton" name="resetOriginalColorButton">
+             <property name="text">
+              <string>AVG</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="originalColorButton">
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
        <widget class="QGroupBox" name="finalColorGroup">
         <property name="title">
-         <string>Final Color</string>
+         <string>Target Color / With Current L</string>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QLabel" name="finalColorLabel">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="finalColorWithCurrentLLabel">
            <property name="text">
             <string/>
            </property>
@@ -90,6 +171,8 @@
     </property>
     <addaction name="actionLoad_Image"/>
     <addaction name="actionExport_Image_to_PLY"/>
+    <addaction name="actionPrint_color_info"/>
+    <addaction name="actionExport_2DColorTransf_to_PLY"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -105,6 +188,7 @@
     </property>
     <addaction name="actionColor_Transformation"/>
     <addaction name="actionCompute_LAB"/>
+    <addaction name="actionPrint_Transformation_Errors"/>
    </widget>
    <addaction name="menuLoad_Image"/>
    <addaction name="menuView"/>
@@ -139,7 +223,7 @@
   </action>
   <action name="actionExport_Image_to_PLY">
    <property name="text">
-    <string>Export Imate to PLY...</string>
+    <string>Export Image to PLY...</string>
    </property>
   </action>
   <action name="actionColor_Transformation">
@@ -152,6 +236,21 @@
     <string>Compute LAB...</string>
    </property>
   </action>
+  <action name="actionPrint_color_info">
+   <property name="text">
+    <string>Print color info JSON-format</string>
+   </property>
+  </action>
+  <action name="actionExport_2DColorTransf_to_PLY">
+   <property name="text">
+    <string>Export 2DColorTransf to PLY...</string>
+   </property>
+  </action>
+  <action name="actionPrint_Transformation_Errors">
+   <property name="text">
+    <string>Print Transformation Errors...</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections>
@@ -162,8 +261,8 @@
    <slot>currentColorChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>489</x>
-     <y>41</y>
+     <x>789</x>
+     <y>56</y>
     </hint>
     <hint type="destinationlabel">
      <x>394</x>
@@ -175,11 +274,11 @@
    <sender>finalColorButton</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>changeFinalColor()</slot>
+   <slot>changeTargetColor()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>426</x>
-     <y>622</y>
+     <x>602</x>
+     <y>634</y>
     </hint>
     <hint type="destinationlabel">
      <x>342</x>
@@ -187,12 +286,83 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>originalColorButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>changeCurrentColor()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>763</x>
+     <y>402</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>339</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>resetOriginalColorButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>avgCurrentColor()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>661</x>
+     <y>402</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>339</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>originalRadioButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>originalRadioButtonClicked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>649</x>
+     <y>106</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>353</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>correctedRadioButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>correctedRadioButtonClicked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>742</x>
+     <y>106</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>353</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>currentColorChanged(QString)</slot>
-  <slot>changeFinalColor()</slot>
+  <slot>changeTargetColor()</slot>
   <slot>zoomIn()</slot>
   <slot>zoomOut()</slot>
   <slot>fitInView()</slot>
+  <slot>changeCurrentColor()</slot>
+  <slot>avgCurrentColor()</slot>
+  <slot>originalRadioButtonClicked(bool)</slot>
+  <slot>correctedRadioButtonClicked(bool)</slot>
  </slots>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

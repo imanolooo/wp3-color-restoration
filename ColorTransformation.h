@@ -20,6 +20,10 @@ public:
     void computeBiharmonicCoordinates();
     void updateColorTransformation();
 
+    void print();
+    void export2PLY(const std::string path) { _ct.export2PLY(path); }
+    void export2PLYTetras(const std::string path) { _ct.export2PLYTetras(path); }
+
 private:
     CubeTetrahedron _ct;
     std::vector<std::pair<int,std::vector<float>>> _cp; //int => index in the cubeTetrahedron, vector<float> coordinates

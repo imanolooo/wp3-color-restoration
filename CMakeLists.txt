@@ -32,4 +32,4 @@ target_link_libraries(color_restoration
         igl::core
         )
 
-target_include_directories(color_restoration PRIVATE ../color/src/color)
+target_include_directories(color_restoration PRIVATE ../color/src/color ../json/single_include/nlohmann)

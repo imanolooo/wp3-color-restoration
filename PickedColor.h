@@ -16,6 +16,10 @@ public:
     unsigned int green()    const { return _colorValue[1]; }
     unsigned int blue()     const { return _colorValue[2]; }
 
+    void setRed(unsigned int r)     { _colorValue[0] = r; }
+    void setGreen(unsigned int g)   { _colorValue[1] = g; }
+    void setBlue(unsigned int b)    { _colorValue[2] = b; }
+
 private:
     std::string _colorName;
     std::string _file;
