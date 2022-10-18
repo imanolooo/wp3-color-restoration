@@ -18,7 +18,7 @@ CubeTetrahedron::CubeTetrahedron(std::vector<float> &dimensions, std::vector<flo
     std::vector<float> end = {_origin[0]+_dimensions[0], _origin[1]+_dimensions[1], _origin[2]+_dimensions[2]};
     std::vector<float> incr = {_dimensions[0]/_resolution[0], _dimensions[1]/_resolution[1], _dimensions[2]/_resolution[2]};
 
-    //generate vertices;
+    //generate vertices - corners
     for(auto x = origin[0]; x <= end[0]; x+=incr[0]) {
         for(auto y = origin[1]; y <= end[1]; y+=incr[1]) {
             for(auto z = origin[2]; z <= end[2]; z+=incr[2]) {
@@ -26,9 +26,24 @@ CubeTetrahedron::CubeTetrahedron(std::vector<float> &dimensions, std::vector<flo
             }
         }
     }
+    //generate vertices - middle
+    std::vector<float> current = {_origin[0], _origin[1], _origin[2]};
+    for(auto x = 0; x < _resolution[0]; ++x) {
+        current[1] = _origin[1];
+        for(auto y = 0; y < _resolution[1]; ++y) {
+            current[2] = _origin[2];
+            for(auto z = 0; z < _resolution[2]; ++z) {
+                _vertices.push_back({current[0]+incr[0]*0.5f, current[1]+incr[1]*0.5f, current[2]+incr[2]*0.5f});
+                current[2] += incr[2];
+            }
+            current[1] += incr[1];
+        }
+        current[0] += incr[0];
+    }
 
     //generate tetrahedrons
     int index = 0;
+    int cubeCounter = 0;
     for(auto x = 0; x < _resolution[0]; ++x) {
         for(auto y = 0; y < _resolution[1]; ++y) {
             for(auto z = 0; z < _resolution[2]; ++z) {
@@ -40,12 +55,20 @@ CubeTetrahedron::CubeTetrahedron(std::vector<float> &dimensions, std::vector<flo
                 unsigned int v5 = index+(_resolution[2]+1)*(_resolution[1]+1)+1;
                 unsigned int v6 = index+(_resolution[2]+1)*(_resolution[1]+1)+(_resolution[2]+1);
                 unsigned int v7 = index+(_resolution[2]+1)*(_resolution[1]+1)+(_resolution[2]+1)+1;
+                unsigned int v8 = (_resolution[0]+1)*(_resolution[1]+1)*(_resolution[2]+1) + cubeCounter;
 
-                _tetras.push_back({v0, v4, v6, v5});
-                _tetras.push_back({v6, v3, v5, v7});
-                _tetras.push_back({v0, v1, v3, v5});
-                _tetras.push_back({v0, v2, v6, v3});
-                _tetras.push_back({v0, v6, v3, v5});
+                _tetras.push_back({v1, v0, v2, v8});//left
+                _tetras.push_back({v1, v2, v3, v8});
+                _tetras.push_back({v2, v7, v3, v8});//back
+                _tetras.push_back({v2, v6, v7, v8});
+                _tetras.push_back({v6, v5, v7, v8});//right
+                _tetras.push_back({v6, v4, v5, v8});
+                _tetras.push_back({v0, v5, v4, v8});//front
+                _tetras.push_back({v0, v1, v5, v8});
+                _tetras.push_back({v1, v3, v7, v8});//top
+                _tetras.push_back({v1, v7, v5, v8});
+                _tetras.push_back({v0, v4, v6, v8});//bottom
+                _tetras.push_back({v0, v6, v2, v8});
 
                 _faces.push_back({v0, v1, v2});//left
                 _faces.push_back({v1, v3, v2});
@@ -61,6 +84,7 @@ CubeTetrahedron::CubeTetrahedron(std::vector<float> &dimensions, std::vector<flo
                 _faces.push_back({v5, v7, v3});//top
 
                 index++;
+                cubeCounter++;
             }
             index++;
         }
