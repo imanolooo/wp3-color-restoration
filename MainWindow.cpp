@@ -31,6 +31,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     _ct2D = NULL;
 
+    loadImage("/home/imanol/Dades/wp3-color_restoration/textures/srgb/LOW-Pedret_XII_color_absS.png");
+    on_actionFit_in_view_triggered();
 }
 
 MainWindow::~MainWindow() {
@@ -236,9 +238,13 @@ void MainWindow::changeTargetColor() {
 
 void MainWindow::on_actionLoad_Image_triggered() {
     QString fileName = QFileDialog::getOpenFileName(this,
-                                            tr("Open Image..."), "/home/imanol/data/wp3-color_restoration", tr("Image Files (*.png *.jpg)"));
+                                                    tr("Open Image..."), "/home/imanol/data/wp3-color_restoration",
+                                                    tr("Image Files (*.png *.jpg)"));
+    loadImage(fileName.toStdString());
+}
 
-
+void MainWindow::loadImage(std::string path){
+    QString fileName(path.c_str());
     QImageReader reader(fileName);
     const QImage newImage = reader.read();
     if(newImage.isNull()) {
@@ -413,29 +419,15 @@ void MainWindow::on_actionFit_in_view_triggered() {
 }
 
 void MainWindow::on_actionColor_Transformation_triggered() {
+    QElapsedTimer testTimer;
+    testTimer.start();
     ui->correctedRadioButton->setEnabled(true);
 
     _ct2D = new ColorTransformation2D(255, 255, 1);
     std::vector<std::vector<float>> sourceColors;
     std::vector<std::vector<float>> targetColors;
 
-    std::cout << "Computing the color control points..." << std::endl;
-    for(auto const &c : _avgColors) {
-        std::cout << c.first << std::endl;
-        color::rgb<float> rgb( { c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
-        color::lab<float> lab;
-        lab = rgb;
-        std::vector<float> color = {0/*lab[0]*/, lab[1], lab[2]};
-        sourceColors.push_back(color);
-    }
-
-    for(auto const &c : _finalColors) {
-        color::rgb<float> rgb({ c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
-        color::lab<float> lab;
-        lab = rgb;
-        std::vector<float> color = {0/*lab[0]*/, lab[1], lab[2]};
-        targetColors.push_back(color);
-    }
+    computeSourceAndTargetColors(sourceColors, targetColors, false);
 
     std::cout << "Initializing the color control points..." << std::endl;
     _ct2D->initControlPoints(sourceColors, targetColors);
@@ -505,59 +497,71 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     rgb = lab;
     std::cout << "RGB final " << rgb[0] << " " << rgb[1] << " " << rgb[2] << std::endl;
 
+    std::cout << "All work done in " << testTimer.elapsed() << " ms" << std::endl;
+}
 
-    /* TESTING THE BIHARMONICS
-     * controlPoints.clear();
-    *//*  ncp(0,0) = -1;  ncp(0,1) = -1;  ncp(0,2) = 0;
-    ncp(1,0) =  1;  ncp(1,1) = -1;  ncp(1,2) = 0;
-    ncp(2,0) = -1;  ncp(2,1) =  1;  ncp(2,2) = 0;
-    ncp(3,0) =  1;  ncp(3,1) =  1;  ncp(3,2) = 0;*//*
-    controlPoints.push_back({0,-1.1,-1.1});
-    controlPoints.push_back({0,1,-1.1});
-    controlPoints.push_back({0,-0.9,1});
-    controlPoints.push_back({0,0.9,0.9});
-    std::vector<std::vector<float>> newControlPoints;
-    newControlPoints.push_back({0,-1.4,-1.4});
-    newControlPoints.push_back({0,1,-1.4});
-    newControlPoints.push_back({0,-0.9,1});
-    newControlPoints.push_back({0,0.9,0.9});
-    test2D.initControlPoints(controlPoints, newControlPoints);
-    std::vector<float> p({0,-0.75,-0.75});
-    std::vector<float> pt;
-    test2D.sample(p,pt);
-    p = {0, 1.2, -1.2};
-    test2D.sample(p,pt);
-    return;*/
+void MainWindow::on_actionColor_Transformation_3D_triggered() {
+    ui->correctedRadioButton->setEnabled(true);
 
-    /*EXPORT TO PLY
-     *
-     * QString fileName = QFileDialog::getSaveFileName(this,
-                                                    tr("Export Image to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
+    std::cout << "Building the color transformation structures..." << std::endl;
+    std::vector<float> dim = {100, 255, 255};
+    std::vector<float> orig = {0, -128, -128};
+    std::vector<int> res = {30, 30, 30};
 
-    ColorTransformation colorTransf;
+    std::vector<std::vector<float>> sourceColors;
+    std::vector<std::vector<float>> targetColors;
+    computeSourceAndTargetColors(sourceColors, targetColors, true);
 
-    //setting control Points
-//    std::vector<std::vector<float>> controlPoints;
-    for(auto &pc : _pickedColors) {
-        //TODO: Compute aa color representing the picked colors (now is the first)
-        std::cout << pc.first << std::endl;
-        std::vector<float> color = {pc.second[0].red(), pc.second[0].green(), pc.second[0].blue()};
-        controlPoints.push_back(color);
+    _ct3D = new ColorTransformation(dim, orig, res);
+
+    std::cout << "Initializing the color control points..." << std::endl;
+    _ct3D->setControlPoints(sourceColors);//, targetColors);
+
+    _ct3D->computeBiharmonicCoordinates();
+
+    std::cout << "Updating control points..." << std::endl;
+    for(auto i = 0; i < targetColors.size(); ++i)
+        _ct3D->updateControlPoint(i, targetColors[0]);
+    _ct3D->updateColorTransformation();
+
+    QElapsedTimer timer;
+    timer.start();
+    _ct3D->print();
+    std::cout << "Transforming the image..." << std::endl;
+    _correctedImage = _image;
+    for(auto i = 0; i < _correctedImage.width(); ++i) {
+        for(auto j = 0; j < _correctedImage.height(); ++j) {
+            if(qRed(_maskImage.pixel(i,j)) > 128) {
+                std::cout << i << ", " << j << std::endl;
+                color::rgb<float> rgb({ qRed(_correctedImage.pixel(i,j))/255.f, qGreen(_correctedImage.pixel(i,j))/255.f, qBlue(_correctedImage.pixel(i,j))/255.f});
+                color::lab<float> lab;
+                lab = rgb;
+                std::vector<float> p({lab[0], lab[1], lab[2]});
+                std::vector<float> pt({0, 0, 0});
+                std::cout << "Presampling" << std::endl;
+                _ct3D->sample(p, pt);
+                //pt[0] = lab[0];//keeping the lightness of the source
+                lab = color::lab<float>({pt[0], pt[1], pt[2]});
+                rgb = lab;
+                _correctedImage.setPixelColor(i, j, QColor(std::min(255.f,std::max(0.f,rgb[0]*255)),
+                                                           std::min(255.f,std::max(0.f,rgb[1]*255)),
+                                                           std::min(255.f,std::max(0.f,rgb[2]*255))));
+            }
+        }
     }
-    colorTransf.setControlPoints(controlPoints);
+    std::cout << "Done in " << timer.elapsed() << std::endl;
 
-    colorTransf.computeBiharmonicCoordinates();
+    std::cout << "Saving the images..." << std::endl;
+    _image.save("sourceImage.png");
+    _correctedImage.save("targetImage.png");
 
-    //update control points
-    //updateControlPoint
+    if(!ui->correctedRadioButton->isChecked())
+        ui->correctedRadioButton->setChecked(true);
+    else
+        correctedRadioButtonClicked(true);
+    std::cout << "Transformation finished!" << std::endl;
 
-    colorTransf.updateColorTransformation();
 
-    //Transform the point cloud.
-    PointCloud pc(_image, _maskImage);
-    pc.transform(colorTransf);
-
-    pc.exportToPLY(fileName.toStdString());*/
 }
 
 void MainWindow::on_actionCompute_LAB_triggered() {
@@ -715,4 +719,26 @@ void MainWindow::printInfoVectorsColor(const std::vector<std::string> &names, co
         if(size - 1 != i)   std::cout << ", ";
     }
     std::cout << "]" << std::endl;
+}
+
+void MainWindow::computeSourceAndTargetColors(std::vector<std::vector<float>> &sourceColors, std::vector<std::vector<float>> &targetColors, bool considerLightness) {
+    std::cout << "Computing the color control points..." << std::endl;
+    for(auto const &c : _avgColors) {
+        std::cout << c.first << std::endl;
+        color::rgb<float> rgb( { c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
+        color::lab<float> lab;
+        lab = rgb;
+        std::vector<float> color = {lab[0], lab[1], lab[2]};
+        if(!considerLightness) color[0] = 0;
+        sourceColors.push_back(color);
+    }
+
+    for(auto const &c : _finalColors) {
+        color::rgb<float> rgb({ c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
+        color::lab<float> lab;
+        lab = rgb;
+        std::vector<float> color = {lab[0], lab[1], lab[2]};
+        if(!considerLightness) color[0] = 0;
+        targetColors.push_back(color);
+    }
 }

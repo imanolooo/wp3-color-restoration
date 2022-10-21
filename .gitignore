@@ -3,3 +3,4 @@
 /cmake-build-debug/_deps/glfw-src/
 /cmake-build-debug/_deps/libigl-src/
 .idea
+/cmake-build-release/

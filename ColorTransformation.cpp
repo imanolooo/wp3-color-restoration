@@ -7,23 +7,28 @@
 #include "ColorTransformation.h"
 
 
-ColorTransformation::ColorTransformation() {
-    std::vector<float> dim = {2, 1, 1};
-    std::vector<float> orig = {0, 0, 0};
-    std::vector<float> res = {2, 2, 2};
+ColorTransformation::ColorTransformation(const std::vector<float> &dim, const std::vector<float> &orig, const std::vector<int> &res) {
     _ct = CubeTetrahedron(dim, orig, res);
-
-
 }
 
 void ColorTransformation::setControlPoints(std::vector<std::vector<float>> &cp) {
-
+    std::map<int, std::vector<std::vector<float>>> cpChecker;
     for(auto &p : cp) {
         std::pair<int, std::vector<float>> controlPoint;
         controlPoint.first = _ct.look4NearestVert(p);
-        //TODO: Update position of the vertex that will be a control point
+        _ct.updateVert(controlPoint.first, p[0], p[1], p[2]);
         controlPoint.second = p;
         _cp.push_back(controlPoint);
+        cpChecker[controlPoint.first].push_back(controlPoint.second);
+    }
+    for(const auto &check : cpChecker){
+        if(check.second.size() > 1) {
+            std::cout << "Problem! 2 control points lies in same vertex!" << std::endl;
+            std::cout << "Vertex " << check.first << std::endl;
+            for(const auto &p : check.second) {
+                std::cout << p[0] << ", " << p[1] << ", " << p [2] << std::endl;
+            }
+        }
     }
 
 }
@@ -86,18 +91,18 @@ void ColorTransformation::updateColorTransformation() {
 
     V = _W * L;
 
-    for(auto i = 0; i < V.rows(); ++i)
-        _ct.updateVert(i, V(i,0), V(i,1), V(i,2));
+    _ct.updatedVertices(V);
 }
 
-void ColorTransformation::sample(const int r_i, const int g_i, const int b_i, float &r_o, float &g_o, float &b_o) {
-    _ct.sample(r_i, g_i, b_i, r_o, g_o, b_o);
+void ColorTransformation::sample(const std::vector<float> &input, std::vector<float> &output) {
+    std::cout << "Sampling " << std::endl;
+    _ct.sample(input, output);
 }
 
 void ColorTransformation::print() {
     int numVerts = _ct.numVerts();
     std::cout << "Num Verts: " << numVerts << std::endl;
-    for(auto i = 0; i < numVerts; ++i) {
+    for(auto i = 0; i < 31*31+1/*numVerts*/; ++i) {
         float x, y, z;
         _ct.vert(i, x, y, z);
         std::cout << i << " => " << x << ", " << y << ", " << z << std::endl;
@@ -105,9 +110,9 @@ void ColorTransformation::print() {
 
     int numTetras = _ct.numTetras();
     std::cout << "Num Tetras: " << numTetras << std::endl;
-    for (auto i = 0; i < numTetras; ++i) {
+    /*for (auto i = 0; i < numTetras; ++i) {
         int i1, i2, i3, i4;
         _ct.tetra(i, i1, i2, i3, i4);
         std::cout << i << " => " << i1 << ", " << i2 << ", " << i3 << ", " << i4 << std::endl;
-    }
+    }*/
 }

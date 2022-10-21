@@ -97,9 +97,9 @@ void PointCloud::transform(ColorTransformation &ct) {
         int r_i = p.r()*255;
         int g_i = p.r()*255;
         int b_i = p.r()*255;
-        float r_o, g_o, b_o;
-        ct.sample(r_i, g_i, b_i, r_o, g_o, b_o);
-        p.updatePosition(r_o/255., g_o/255., b_o/255);
-        p.updateColor(r_o/255., g_o/255., b_o/255);
+        std::vector<float> output;
+        ct.sample({(float)r_i, (float)g_i, (float)b_i},output);
+        p.updatePosition(output[0]/255., output[1]/255., output[2]/255);
+        p.updateColor(output[0]/255., output[1]/255., output[2]/255);
     }
 }
