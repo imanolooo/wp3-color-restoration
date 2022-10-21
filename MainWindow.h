@@ -11,6 +11,7 @@
 #include <QScrollBar>
 #include "PickedColor.h"
 #include "ColorTransformation2D.h"
+#include "ColorTransformation.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -39,6 +40,7 @@ public slots:
     void on_actionZoom_out_triggered();
 
     void on_actionColor_Transformation_triggered();
+    void on_actionColor_Transformation_3D_triggered();
     void on_actionCompute_LAB_triggered();
     void on_actionPrint_Transformation_Errors_triggered();
 
@@ -52,6 +54,8 @@ public slots:
     void correctedRadioButtonClicked(bool b);
 
 private:
+    void loadImage(std::string path);
+    void computeSourceAndTargetColors(std::vector<std::vector<float>> &sourceColors, std::vector<std::vector<float>> &targetColors, bool considerLightness);
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
     void scaleImage(double factor);
     void printInfoPickedColor(std::string colorName);
@@ -67,6 +71,7 @@ private:
     QLabel * _imageLabel;
     double _scaleFactor;
     ColorTransformation2D * _ct2D;
+    ColorTransformation * _ct3D;
 };
 
 

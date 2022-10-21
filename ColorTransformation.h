@@ -11,9 +11,9 @@
 
 class ColorTransformation {
 public:
-    ColorTransformation();
+    ColorTransformation(const std::vector<float> &dim, const std::vector<float> &orig, const std::vector<int> &res);
 
-    void sample(const int r_i, const int g_i, const int b_i, float &r_o, float &g_o, float &b_o);
+    void sample(const std::vector<float> &input, std::vector<float> &output);
 
     void setControlPoints(std::vector<std::vector<float> > &cp);
     void updateControlPoint(int index, std::vector<float> &pos);

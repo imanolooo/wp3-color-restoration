@@ -2,12 +2,15 @@
 // Created by imanol on 27/5/22.
 //
 
-#include <vector>
-
 #ifndef COLOR_RESTORATION_CUBETETRAHEDRON_H
 #define COLOR_RESTORATION_CUBETETRAHEDRON_H
 
+#include <vector>
 #include <string>
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 /*
  * EACH CUBE INSIDE THE GRID FOLLOWS THE NEXT ORDER
  *          3           7
@@ -22,8 +25,8 @@
 class CubeTetrahedron {
 public:
     explicit CubeTetrahedron() {;}
-    CubeTetrahedron(std::vector<float> &dimensions, std::vector<float> &origin, std::vector<float> &resolution);
-    void sample(const int i, const int j, const int k, float &x, float &y, float &z);
+    CubeTetrahedron(const std::vector<float> &dimensions, const std::vector<float> &origin, const std::vector<int> &resolution);
+    void sample(const std::vector<float> &p, std::vector<float> &pTransformed);
 
     void clearTetras();
 
@@ -35,6 +38,7 @@ public:
     unsigned int depth() const { return _depth; }*/
 
     void updateVert(const int i, const float x, const float y, const float z);
+    void updatedVertices(const Eigen::MatrixXd &V);
     void vert(const int i, float &x, float &y, float &z) const;
     void tetra(const int i, int &v1, int &v2, int &v3, int &v4) const;
 
@@ -42,11 +46,14 @@ public:
     void export2PLYTetras(const std::string &path);
 
 private:
+    bool computeBarycentricCoordinates(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &v3, const Eigen::Vector3d &v4, const Eigen::Vector3d &p,
+                                       float &bc1, float &bc2, float &bc3, float &bc4) const;
+
     //unsigned int _width, _height, _depth;
     std::vector<float> _dimensions;
     std::vector<float> _origin;
-    std::vector<float> _resolution;
-    std::vector<std::vector<float>> _vertices;
+    std::vector<int> _resolution;
+    std::vector<std::vector<float>> _vertices, _updatedVertices;
     std::vector<std::vector<unsigned int>> _tetras;
     std::vector<std::vector<unsigned int>> _faces;
 
