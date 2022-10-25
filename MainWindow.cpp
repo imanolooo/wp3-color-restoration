@@ -537,7 +537,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
 
     QElapsedTimer timer;
     timer.start();
-    _ct3D->print();
+    //_ct3D->print();
     std::cout << "Transforming the image..." << std::endl;
     _correctedImage = _image;
     for(auto i = 0; i < _correctedImage.width(); ++i) {

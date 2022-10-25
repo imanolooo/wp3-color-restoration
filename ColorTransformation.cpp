@@ -62,12 +62,17 @@ void ColorTransformation::computeBiharmonicCoordinates() {
     //_ct.clearTetras();
 
     //S => list of lists (of dim = 1 per points, dim > 1 per regions) of indexes of control points.
+    //Control Points
     std::vector<std::vector<int>> S;
     for(auto &cp : _cp) {
         S.push_back({cp.first});
     }
+    //boundaries
+    std::vector<int> f1 = {0, _ct.res()[2], (_ct.res()[2]+1)*(_ct.res()[1]+1)-1, _ct.res()[2]+1};
+
+
     //For 3D k needs to be 3.
-    int k = 2;
+    int k = 3;
 
     QElapsedTimer timer;
     timer.start();
@@ -84,13 +89,30 @@ void ColorTransformation::updateColorTransformation() {
     //std::cout << "Updating Color Transformation..." << std::endl;
 
     //L => Low Res Verts
-    Eigen::MatrixXd L(_cp.size(),3);
-    for(auto i = 0; i < _cp.size(); ++i) {
+    //first control points
+    Eigen::MatrixXd L(_cp.size()+4,3);
+    auto i = 0;
+    for(i = 0; i < _cp.size(); ++i) {
         L(i,0) = _cp[i].second[0];
         L(i,1) = _cp[i].second[1];
         L(i,2) = _cp[i].second[2];
         //std::cout << L.row(i).x() << ", " << L.row(i).y() << ", " << L.row(i).z() << std::endl;
     }
+    //then bounding regions.
+    float x, y, z;
+    _ct.vert(0, x, y, z);
+    L.row(i) = Eigen::Vector3d(x, y, z);
+    i++;
+    _ct.vert(_ct.res()[2], x, y, z);
+    L.row(i) = Eigen::Vector3d(x, y, z);
+    i++;
+    _ct.vert((_ct.res()[2]+1)*(_ct.res()[1]+1)-1, x, y, z);
+    L.row(i) = Eigen::Vector3d(x, y, z);
+    i++;
+    _ct.vert((_ct.res()[2]+1)*(_ct.res()[1]), x, y, z);
+    L.row(i) = Eigen::Vector3d(x, y, z);
+
+    std::cout << L << std::endl;
 
     V = _W * L;
 

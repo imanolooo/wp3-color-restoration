@@ -36,6 +36,7 @@ public:
     /*unsigned int width() const { return _width; }
     unsigned int height() const { return _height; }
     unsigned int depth() const { return _depth; }*/
+    const std::vector<int>& res() { return _resolution; }
 
     void updateVert(const int i, const float x, const float y, const float z);
     void updatedVertices(const Eigen::MatrixXd &V);
