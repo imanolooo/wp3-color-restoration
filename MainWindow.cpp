@@ -543,7 +543,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
     for(auto i = 0; i < _correctedImage.width(); ++i) {
         for(auto j = 0; j < _correctedImage.height(); ++j) {
             if(qRed(_maskImage.pixel(i,j)) > 128) {
-                std::cout << i << ", " << j << std::endl;
+                //std::cout << i << ", " << j << std::endl;
                 color::rgb<float> rgb({ qRed(_correctedImage.pixel(i,j))/255.f, qGreen(_correctedImage.pixel(i,j))/255.f, qBlue(_correctedImage.pixel(i,j))/255.f});
                 color::lab<float> lab;
                 lab = rgb;
