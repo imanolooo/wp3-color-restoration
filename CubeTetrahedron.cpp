@@ -119,13 +119,15 @@ void CubeTetrahedron::updateVert(const int i, const float x, const float y, cons
 }
 
 void CubeTetrahedron::updatedVertices(const Eigen::MatrixXd &V) {
-    for(auto i = 0; i < V.rows(); ++i)
+    for(auto i = 0; i < V.rows(); ++i) {
         _updatedVertices[i] = {V(i,0), V(i,1), V(i,2)};
+    }
+
 }
 
 void CubeTetrahedron::sample(const std::vector<float> &p, std::vector<float> &pTransformed) {
-    std::cout << "Sampling" << std::endl;
-    std::cout << p[0] << ", " << p[1] << ", " << p[2] << " => " << pTransformed[0] << ", " << pTransformed[1] << ", " << pTransformed[2] << std::endl;
+    //std::cout << "Sampling" << std::endl;
+    //std::cout << p[0] << ", " << p[1] << ", " << p[2] << " => " << pTransformed[0] << ", " << pTransformed[1] << ", " << pTransformed[2] << std::endl;
 
     //find the cell where the point lies
     std::vector<float> incr = {_dimensions[0]/_resolution[0], _dimensions[1]/_resolution[1], _dimensions[2]/_resolution[2]};
@@ -133,96 +135,49 @@ void CubeTetrahedron::sample(const std::vector<float> &p, std::vector<float> &pT
     unsigned int indexVLC = (int)ijk[0] * (_resolution[1]+1)*(_resolution[2]+1) + (int)ijk[1] * (_resolution[2]+1) + (int)ijk[2];
     unsigned int indexCell = (int)ijk[0] * (_resolution[1])*(_resolution[2]) + (int)ijk[1] * (_resolution[2]) + (int)ijk[2];
 
-    std::cout << "Incr " << incr[0] << ", " << incr[1] << ", " << incr[2] << std::endl;
-    std::cout << "Ijk " << ijk[0] << ", " << ijk[1] << ", " << ijk[2] << std::endl;
+    //std::cout << "Incr " << incr[0] << ", " << incr[1] << ", " << incr[2] << std::endl;
+    //std::cout << "Ijk " << ijk[0] << ", " << ijk[1] << ", " << ijk[2] << std::endl;
 
-    bool found = false;
-    int counter = 0;
+    int iv1, iv2, iv3, iv4;
+    float bc1, bc2, bc3, bc4;
+    bool found = look4BCInCube(p, indexCell, iv1, iv2, iv3, iv4, bc1, bc2, bc3, bc4);
+    int counter = 1;
     while(!found) {
-        unsigned int index_X = indexVLC + (_resolution[2]+1)*(_resolution[1]+1);
-        unsigned int index_Y = indexVLC + (_resolution[2]+1);
-        unsigned int index_Z = indexVLC + 1;
 
-        Eigen::Vector3d VLC(_vertices[indexVLC][0], _vertices[indexVLC][1], _vertices[indexVLC][2]);
-        Eigen::Vector3d X(_vertices[index_X][0]-_vertices[indexVLC][0], _vertices[index_X][1]-_vertices[indexVLC][1], _vertices[index_X][2]-_vertices[indexVLC][2]);
-        Eigen::Vector3d Y(_vertices[index_Y][0]-_vertices[indexVLC][0], _vertices[index_Y][1]-_vertices[indexVLC][1], _vertices[index_Y][2]-_vertices[indexVLC][2]);
-        Eigen::Vector3d Z(_vertices[index_Z][0]-_vertices[indexVLC][0], _vertices[index_Z][1]-_vertices[indexVLC][1], _vertices[index_Z][2]-_vertices[indexVLC][2]);
-        Eigen::Matrix3d M;
-        M << X, Y, Z;
-        Eigen::Vector3d d = M.inverse() * (Eigen::Vector3d(p[0], p[1], p[2])-VLC);
-        std::cout << "IndexVLC " << indexVLC << "\t IndexCell " << indexCell << std::endl;
-        std::cout << "IndexVLC Coords " << _vertices[indexVLC][0] << ", " << _vertices[indexVLC][1] << ", " << _vertices[indexVLC][2] << "!" << std::endl;
-        std::cout << "D " << d.x() << ", " << d.y() << ", " << d.z() << std::endl;
-        std::cout << "X " << X.x() << ", " << X.y() << ", " << X.z() << std::endl;
-        std::cout << "Y " << Y.x() << ", " << Y.y() << ", " << Y.z() << std::endl;
-        std::cout << "Z " << Z.x() << ", " << Z.y() << ", " << Z.z() << std::endl;
-        std::cout << "D' " << (p[0]-_vertices[indexVLC][0])/incr[0] << ", " << (p[1]-_vertices[indexVLC][1])/incr[1] << ", " << (p[2]-_vertices[indexVLC][2])/incr[2] << std::endl;
+        int deltaX = (_resolution[2]) * (_resolution[1]);
+        int deltaY = (_resolution[2]);
+        int deltaZ = 1;
+        int deltaVLCX = (_resolution[2]+1) * (_resolution[1]+1);
+        int deltaVLCY = (_resolution[2]+1);
+        int deltaVLCZ = 1;
+        for(auto i = -counter; i < counter && !found; ++i) {
+            for(auto j = -counter; j < counter && !found; ++j) {
+                for(auto k = -counter; k < counter && !found; ++k) {
+                    int currentIndexCell = indexCell + i*deltaX + j*deltaY + k*deltaZ;
 
-        if(counter == 10){
+                    found = look4BCInCube(p, currentIndexCell, iv1, iv2, iv3, iv4, bc1, bc2, bc3, bc4);
+                }
+            }
+        }
+
+        if(counter == 10){//crash the application if the cell is not suitable to be found
             std::cout <<_vertices[-1][4] << std::endl;
         }
 
-        if(d.x() >= 0 && d.x() < 1. && d.y() >= 0 && d.y() < 1. && d.z() >= 0 && d.z() < 1.)
-            found = true;
-        else {
-            if(d.x() < 0) {
-                indexVLC -= std::abs((int)d.x()+1)*(_resolution[2]+1)*(_resolution[1]+1);
-                indexCell -= std::abs((int)d.x()+1)*(_resolution[2])*(_resolution[1]);
-            }
-            if(d.x() > 1) {
-                indexVLC += (int) d.x() * (_resolution[2] + 1) * (_resolution[1] + 1);
-                indexCell += (int) d.x() * (_resolution[2]) * (_resolution[1]);
-            }
-            if(d.y() < 0) {
-                indexVLC -= std::abs((int) d.x() + 1) * (_resolution[2] + 1);
-                indexCell -= std::abs((int) d.x()) * (_resolution[2]);
-            }
-            if(d.y() > 1) {
-                indexVLC += (int) d.x() * (_resolution[2] + 1);
-                indexCell += (int) d.x() * (_resolution[2]);
-            }
-            if(d.z() < 0) {
-                indexVLC -= std::abs((int) d.z() + 1) * (1);
-                indexCell -= std::abs((int) d.z() + 1) * (1);
-            }
-            if(d.z() > 1) {
-                indexVLC += (int) d.z() * (1);
-                indexCell += (int) d.z() * (1);
-            }
-        }
         counter++;
-    }
 
-    //find the tetra of the cell where the point lies => check if baricentric coords are in range.
-    //compute baricentric coordinates in the tetra
-    found = false;
-    float bc1, bc2, bc3, bc4;
-
-    int iv1, iv2, iv3, iv4;
-    for(auto i = 0; i < 12 && !found; ++i) {
-
-        iv1 = _tetras[indexCell*12+i][0];
-        iv2 = _tetras[indexCell*12+i][1];
-        iv3 = _tetras[indexCell*12+i][2];
-        iv4 = _tetras[indexCell*12+i][3];
-
-        Eigen::Vector3d v1, v2, v3, v4;
-        v1 = Eigen::Vector3d(_vertices[iv1][0], _vertices[iv1][1], _vertices[iv1][2]);
-        v2 = Eigen::Vector3d(_vertices[iv2][0], _vertices[iv2][1], _vertices[iv2][2]);
-        v3 = Eigen::Vector3d(_vertices[iv3][0], _vertices[iv3][1], _vertices[iv3][2]);
-        v4 = Eigen::Vector3d(_vertices[iv4][0], _vertices[iv4][1], _vertices[iv4][2]);
-        Eigen::Vector3d  p(p[0], p[1], p[2]);
-
-        found = computeBarycentricCoordinates(v1, v2, v3, v4, p, bc1, bc2, bc3, bc4);
-    }
-    if(!found) {
-        std::cout << "ERROR: Impossible to sample the point " << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
     }
 
     //compute new position
     pTransformed[0] = _updatedVertices[iv1][0]*bc1 + _updatedVertices[iv2][0]*bc2 + _updatedVertices[iv3][0]*bc3 + _updatedVertices[iv4][0]*bc4;
     pTransformed[1] = _updatedVertices[iv1][1]*bc1 + _updatedVertices[iv2][1]*bc2 + _updatedVertices[iv3][1]*bc3 + _updatedVertices[iv4][1]*bc4;
     pTransformed[2] = _updatedVertices[iv1][2]*bc1 + _updatedVertices[iv2][2]*bc2 + _updatedVertices[iv3][2]*bc3 + _updatedVertices[iv4][2]*bc4;
+    /*std::cout << "IV1 " << iv1 << " => " << _updatedVertices[iv1][0] << ", " << _updatedVertices[iv1][1] << ", " << _updatedVertices[iv1][2] << std::endl;
+    std::cout << "IV1 " << iv2 << " => " << _updatedVertices[iv2][0] << ", " << _updatedVertices[iv2][1] << ", " << _updatedVertices[iv2][2] << std::endl;
+    std::cout << "IV1 " << iv3 << " => " << _updatedVertices[iv3][0] << ", " << _updatedVertices[iv3][1] << ", " << _updatedVertices[iv3][2] << std::endl;
+    std::cout << "IV1 " << iv4 << " => " << _updatedVertices[iv4][0] << ", " << _updatedVertices[iv4][1] << ", " << _updatedVertices[iv4][2] << std::endl;
+    std::cout << "BC's " << bc1 << " " << bc2 << " " << bc3 << " " << bc4 << std::endl;
+    std::cout << "PTransformed " << pTransformed[0] << ", " << pTransformed[1] << ", " << pTransformed[2] << std::endl;*/
 
 }
 
@@ -240,17 +195,17 @@ unsigned int CubeTetrahedron::look4NearestVert(const std::vector<float> &p) {
         x = std::round(x);
     //TODO: clip to 0 and maxRes to handle points outside the grid
 
-    std::cout << "Nearest position " << ijk[0]*incr[0] << ", " << ijk[1]*incr[1] << ", " << ijk[2]*incr[2] << std::endl;
+    //std::cout << "Nearest position " << ijk[0]*incr[0] << ", " << ijk[1]*incr[1] << ", " << ijk[2]*incr[2] << std::endl;
 
     unsigned int index = ijk[0] * (_resolution[1]+1)*(_resolution[2]+1) + ijk[1] * (_resolution[2]+1) + ijk[2];
-    std::cout << "Index " << index << std::endl;
+    //std::cout << "Index " << index << std::endl;
 
     return index;
 
 
 }
 
-void CubeTetrahedron::export2PLY(const std::string &path) {
+void CubeTetrahedron::export2PLY(const std::string &path, const std::string &pathTranf) {
     std::vector<std::array<double,3>> positions;
     positions.reserve(_vertices.size());
     for(const auto &v : _vertices)
@@ -260,6 +215,15 @@ void CubeTetrahedron::export2PLY(const std::string &path) {
     //plyOut.addVertexColors(colors);
     plyOut.addFaceIndices(_faces);
     plyOut.write(path, happly::DataFormat::Binary);
+
+    positions.clear();
+    for(const auto &v : _updatedVertices)
+        positions.push_back({v[0], v[1], v[2]});
+    happly::PLYData plyOut2;
+    plyOut2.addVertexPositions(positions);
+    //plyOut.addVertexColors(colors);
+    plyOut2.addFaceIndices(_faces);
+    plyOut2.write(pathTranf, happly::DataFormat::Binary);
 }
 
 void CubeTetrahedron::export2PLYTetras(const std::string &path) {
@@ -307,5 +271,73 @@ bool CubeTetrahedron::computeBarycentricCoordinates(const Eigen::Vector3d &v1, c
     bc4 = Vd/V;
 
     return !(bc1 < 0 || bc2 < 0 || bc3 < 0 || bc4 < 0);
+}
+
+bool CubeTetrahedron::look4BCInCube(const std::vector<float> &p, const int indexCell, int &iv1, int &iv2, int &iv3, int &iv4,
+                                    float &bc1, float &bc2, float &bc3, float &bc4) {
+    //find the tetra of the cell where the point lies => check if baricentric coords are in range.
+    //compute baricentric coordinates in the tetra
+    bool found = false;
+    for(auto i = 0; i < 12 && !found; ++i) {
+
+        iv1 = _tetras[indexCell*12+i][0];
+        iv2 = _tetras[indexCell*12+i][1];
+        iv3 = _tetras[indexCell*12+i][2];
+        iv4 = _tetras[indexCell*12+i][3];
+
+        Eigen::Vector3d v1, v2, v3, v4;
+        v1 = Eigen::Vector3d(_vertices[iv1][0], _vertices[iv1][1], _vertices[iv1][2]);
+        v2 = Eigen::Vector3d(_vertices[iv2][0], _vertices[iv2][1], _vertices[iv2][2]);
+        v3 = Eigen::Vector3d(_vertices[iv3][0], _vertices[iv3][1], _vertices[iv3][2]);
+        v4 = Eigen::Vector3d(_vertices[iv4][0], _vertices[iv4][1], _vertices[iv4][2]);
+        Eigen::Vector3d  pp(p[0], p[1], p[2]);
+
+        found = computeBarycentricCoordinates(v1, v2, v3, v4, pp, bc1, bc2, bc3, bc4);
+    }
+    //if(!found) {
+    //    std::cout << "ERROR: Impossible to sample the point " << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
+    //}
+
+    return found;
+}
+
+bool CubeTetrahedron::computeBarycentricCoordinates2(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
+                                                     const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
+                                                     const Eigen::Vector3d &p, float &bc1, float &bc2, float &bc3,
+                                                     float &bc4) const {
+    //https://dennis2society.de/painless-tetrahedral-barycentric-mapping
+    const float det0 = Determinant4x4(v1, v2, v3, v4);
+    const float det1 = Determinant4x4(p,  v2, v3, v4);
+    const float det2 = Determinant4x4(v1,  p, v3, v4);
+    const float det3 = Determinant4x4(v1, v2,  p, v4);
+    const float det4 = Determinant4x4(v1, v2, v3,  p);
+    bc1 = (det1/det0);
+    bc2 = (det2/det0);
+    bc3 = (det3/det0);
+    bc4 = (det4/det0);
+
+    return !(bc1 < 0 || bc2 < 0 || bc3 < 0 || bc4 < 0);
+}
+
+float CubeTetrahedron::Determinant4x4(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &v3,
+                                      const Eigen::Vector3d &v4) const {
+    float det = v2.z()*v3.y()*v4.x() - v1.z()*v3.y()*v4.x() -
+                v2.y()*v3.z()*v4.x() + v1.y()*v3.z()*v4.x() +
+
+                v1.z()*v2.y()*v4.x() - v1.y()*v2.z()*v4.x() -
+                v2.z()*v3.x()*v4.y() + v1.z()*v3.x()*v4.y() +
+
+                v2.x()*v3.z()*v4.y() - v1.x()*v3.z()*v4.y() -
+                v1.z()*v2.x()*v4.y() + v1.x()*v2.z()*v4.y() +
+
+                v2.y()*v3.x()*v4.z() - v1.y()*v3.x()*v4.z() -
+                v2.x()*v3.y()*v4.z() + v1.x()*v3.y()*v4.z() +
+
+                v1.y()*v2.x()*v4.z() - v1.x()*v2.y()*v4.z() -
+                v1.z()*v2.y()*v2.x() + v1.y()*v2.z()*v3.x() +
+
+                v1.z()*v2.x()*v3.y() - v1.x()*v2.z()*v3.y() -
+                v1.y()*v2.x()*v3.z() + v1.x()*v2.y()*v3.z();
+    return det;
 }
 

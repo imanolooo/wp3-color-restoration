@@ -42,12 +42,17 @@ public:
     void vert(const int i, float &x, float &y, float &z) const;
     void tetra(const int i, int &v1, int &v2, int &v3, int &v4) const;
 
-    void export2PLY(const std::string &path);
+    void export2PLY(const std::string &path, const std::string &pathTranf);
     void export2PLYTetras(const std::string &path);
 
+    bool look4BCInCube(const std::vector<float> &p, const int indexCell, int &iv1, int &iv2, int &iv3, int &iv4, float &bc1, float &bc2, float &bc3, float &bc4);
 private:
+
     bool computeBarycentricCoordinates(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &v3, const Eigen::Vector3d &v4, const Eigen::Vector3d &p,
                                        float &bc1, float &bc2, float &bc3, float &bc4) const;
+    bool computeBarycentricCoordinates2(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &v3, const Eigen::Vector3d &v4, const Eigen::Vector3d &p,
+                                       float &bc1, float &bc2, float &bc3, float &bc4) const;
+    float Determinant4x4(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &v3, const Eigen::Vector3d &v4) const;
 
     //unsigned int _width, _height, _depth;
     std::vector<float> _dimensions;

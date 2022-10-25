@@ -81,12 +81,15 @@ void ColorTransformation::updateColorTransformation() {
     //V => High Res Verts
     Eigen::MatrixXd V(_ct.numVerts(),3);
 
+    //std::cout << "Updating Color Transformation..." << std::endl;
+
     //L => Low Res Verts
     Eigen::MatrixXd L(_cp.size(),3);
     for(auto i = 0; i < _cp.size(); ++i) {
         L(i,0) = _cp[i].second[0];
         L(i,1) = _cp[i].second[1];
         L(i,2) = _cp[i].second[2];
+        //std::cout << L.row(i).x() << ", " << L.row(i).y() << ", " << L.row(i).z() << std::endl;
     }
 
     V = _W * L;
@@ -95,7 +98,7 @@ void ColorTransformation::updateColorTransformation() {
 }
 
 void ColorTransformation::sample(const std::vector<float> &input, std::vector<float> &output) {
-    std::cout << "Sampling " << std::endl;
+    //std::cout << "Sampling " << std::endl;
     _ct.sample(input, output);
 }
 

@@ -21,15 +21,16 @@ public:
     void updateColorTransformation();
 
     void print();
-    void export2PLY(const std::string path) { _ct.export2PLY(path); }
+    void export2PLY(const std::string path, const std::string pathTransf) { _ct.export2PLY(path, pathTransf); }
     void export2PLYTetras(const std::string path) { _ct.export2PLYTetras(path); }
+
+    CubeTetrahedron* cubeTetra() { return &_ct; }
 
 private:
     CubeTetrahedron _ct;
     std::vector<std::pair<int,std::vector<float>>> _cp; //int => index in the cubeTetrahedron, vector<float> coordinates
 
     Eigen::MatrixXd _W; //biharmonic coordinates weights;
-
 
 };
 

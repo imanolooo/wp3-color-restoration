@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
     updatePickedColorsGUI();
 
     _ct2D = NULL;
+    _ct3D = NULL;
 
     loadImage("/home/imanol/Dades/wp3-color_restoration/textures/srgb/LOW-Pedret_XII_color_absS.png");
     on_actionFit_in_view_triggered();
@@ -42,8 +43,8 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadPickedColors() {
-    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego0922-ocherModified.json";
-    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego0922-ocherModified.json";
+    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego270922.json";
+    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego270922.json";
 
     std::ifstream fSrc(srcPaletteFile);
     std::ifstream fDst(dstPaletteFile);
@@ -215,6 +216,13 @@ void MainWindow::changeTargetColor() {
 
     QColor initial(r,g,b);
     QColor finalColor = QColorDialog::getColor(initial, this, "Select color...", QColorDialog::DontUseNativeDialog);
+    if(!finalColor.isValid())   finalColor = initial;
+    /* Alternative to the previous line to avoid grey layer on main window. We need to make the dialog as member of mainwindow and create a slot to handle its result.
+    QColorDialog dialog(initial, this);
+    dialog.setOption(QColorDialog::DontUseNativeDialog);
+    dialog.open();
+     */
+
 
     _finalColors.at(colorName.toStdString()).setRed(finalColor.red());
     _finalColors.at(colorName.toStdString()).setGreen(finalColor.green());
@@ -295,17 +303,20 @@ void MainWindow::on_actionExport_Image_to_PLY_triggered() {
     pc.exportToPLY(fileName.toStdString());
 }
 
-void MainWindow::on_actionExport_2DColorTransf_to_PLY_triggered() {
-    if(_ct2D == NULL) {
+void MainWindow::on_actionExport_ColorTransf_to_PLY_triggered() {
+    if(_ct2D == NULL && _ct3D == NULL) {
         std::cerr << "Color transformation not created yet!" << std::endl;
         return;
     }
     QString fileNameOri = QFileDialog::getSaveFileName(this,
-                                                    tr("Export original 2D Color Transformation to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
+                                                    tr("Export original Color Transformation to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
     QString fileNameTransf = QFileDialog::getSaveFileName(this,
-                                                    tr("Export transformed 2D Color Transformation to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
+                                                    tr("Export transformed Color Transformation to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
 
-    _ct2D->export2PLY(fileNameOri.toStdString(), fileNameTransf.toStdString());
+    std::cout << "Exporting transformations to PLY..." << std::flush;
+    if(_ct2D != NULL)   _ct2D->export2PLY(fileNameOri.toStdString(), fileNameTransf.toStdString());
+    if(_ct3D != NULL)   _ct3D->export2PLY(fileNameOri.toStdString(), fileNameTransf.toStdString());
+    std::cout << "Done!" << std::endl;
 }
 
 void MainWindow::on_actionPrint_color_info_triggered() {
@@ -521,7 +532,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
 
     std::cout << "Updating control points..." << std::endl;
     for(auto i = 0; i < targetColors.size(); ++i)
-        _ct3D->updateControlPoint(i, targetColors[0]);
+        _ct3D->updateControlPoint(i, targetColors[i]);
     _ct3D->updateColorTransformation();
 
     QElapsedTimer timer;
@@ -538,8 +549,9 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
                 lab = rgb;
                 std::vector<float> p({lab[0], lab[1], lab[2]});
                 std::vector<float> pt({0, 0, 0});
-                std::cout << "Presampling" << std::endl;
+                //std::cout << "Presampling" << std::endl;
                 _ct3D->sample(p, pt);
+                //std::cout << "Transformation: " << p[0] << ", " << p[1] << ", " << p[2] << " => " << pt[0] << ", " << pt[1] << ", " << pt[2] << std::endl;
                 //pt[0] = lab[0];//keeping the lightness of the source
                 lab = color::lab<float>({pt[0], pt[1], pt[2]});
                 rgb = lab;
