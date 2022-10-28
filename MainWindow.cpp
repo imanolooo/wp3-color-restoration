@@ -16,6 +16,7 @@
 
 #include <color.hpp>//https://github.com/dmilos/color
 #include <json.hpp>//https://github.com/nlohmann/json
+#include "happly.h"
 
 MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -753,4 +754,85 @@ void MainWindow::computeSourceAndTargetColors(std::vector<std::vector<float>> &s
         if(!considerLightness) color[0] = 0;
         targetColors.push_back(color);
     }
+}
+
+void MainWindow::on_actionExport_Palette_to_PLY_triggered() {
+
+    QString fileNameSamples = QFileDialog::getSaveFileName(this,
+                                                    tr("Samples..."), "/home/imanol/data/wp3-color_restoration/",
+                                                    tr("PointCloud Files (*.ply)"));
+    QString fileNameAVG = QFileDialog::getSaveFileName(this,
+                                                           tr("Palette..."), "/home/imanol/data/wp3-color_restoration/",
+                                                           tr("PointCloud Files (*.ply)"));
+
+    QString fileNameFinal = QFileDialog::getSaveFileName(this,
+                                                       tr("Final..."), "/home/imanol/data/wp3-color_restoration/",
+                                                       tr("PointCloud Files (*.ply)"));
+
+
+
+    std::vector<std::vector<float>> sourceColors;
+    std::vector<std::vector<float>> targetColors;
+
+    computeSourceAndTargetColors(sourceColors, targetColors, true);
+
+    std::vector<std::array<double,3>> positions, colors;
+    positions.reserve(sourceColors.size());
+    colors.reserve(sourceColors.size());
+    for(const auto &v : sourceColors)
+        positions.push_back({v[0], v[1], v[2]});
+
+    colors.push_back({0,0,0});
+    colors.push_back({68./255.,68./255.,68./255.});
+    colors.push_back({144./255.,20./255.,20/255.});
+    colors.push_back({0,108./255.,0});
+    colors.push_back({65./255.,1.,86./255.});
+    colors.push_back({174./255.,174./255.,174./255.});
+    colors.push_back({116./255.,116./255.,116./255.});
+    colors.push_back({1.,0,1.});
+    colors.push_back({1.,0,0});
+    colors.push_back({223./255.,223./255.,223./255.});
+    colors.push_back({1,230./255.,163./255.});
+    colors.push_back({1.,253./255.,0});
+
+    //range=["#000000", "#444444", "#901414", "#006c00", "#41ff56", "#aeaeae", "#747474", "#ff00ff", "#ff0000", "#dfdfdf", "#ffe6a3", "#fffd00"]
+
+    //AVG
+    happly::PLYData plyOutAVG;
+    plyOutAVG.addVertexPositions(positions);
+    plyOutAVG.addVertexColors(colors);
+    //plyOut.addFaceIndices(_faces);
+    plyOutAVG.write(fileNameAVG.toStdString(), happly::DataFormat::ASCII);
+
+    //Final
+    positions.clear();
+    for(const auto &v : targetColors)
+        positions.push_back({v[0], v[1], v[2]});
+
+    happly::PLYData plyOutFinal;
+    plyOutFinal.addVertexPositions(positions);
+    plyOutFinal.addVertexColors(colors);
+    //plyOut.addFaceIndices(_faces);
+    plyOutFinal.write(fileNameFinal.toStdString(), happly::DataFormat::ASCII);
+
+    //Samples
+    std::vector<std::array<double,3>> colorsSamples;
+    positions.clear();
+    int i = 0;
+    for(const auto &pc : _pickedColors) {
+        for(const auto &c : pc.second) {
+            color::rgb<double> rgb( { c.red()/255.f, c.green()/255.f, c.blue()/255.f});
+            color::lab<double> lab;
+            lab = rgb;
+            positions.push_back({lab[0], lab[1], lab[2]});
+            colorsSamples.push_back(colors[i]);
+        }
+        i++;
+    }
+
+    happly::PLYData plyOutSamples;
+    plyOutSamples.addVertexPositions(positions);
+    plyOutSamples.addVertexColors(colorsSamples);
+    //plyOut.addFaceIndices(_faces);
+    plyOutSamples.write(fileNameSamples.toStdString(), happly::DataFormat::ASCII);
 }

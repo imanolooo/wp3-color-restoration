@@ -11,6 +11,8 @@
 void tetrahedron();
 
 int main(int argc, char *argv[]) {
+
+    //TESTS in 3D
     /*ColorTransformation ct;
     ct.print();
 
@@ -82,6 +84,19 @@ int main(int argc, char *argv[]) {
     return 0;
 
     */
+
+
+    //TESTS in 2D
+    /*ColorTransformation2D ct2d(5,5);
+    ct2d.print();
+    std::vector<std::vector<float>> cp = {{0,-2,-2},{0,2,-2},{0,-2,2},{0,2,2}};
+    std::vector<std::vector<float>> ncp = {{0,-2,-3},{0,2,-3},{0,-2,2},{0,2,2}};
+    ct2d.initControlPoints(cp, ncp);
+    ct2d.print();
+    ct2d.export2PLY("/home/imanol/Dades/wp3-color_restoration/results/2022.10.27/transf2D/Original.ply",
+                    "/home/imanol/Dades/wp3-color_restoration/results/2022.10.27/transf2D/Transformed.ply");
+    return 0;*/
+
 
 
     QApplication a(argc, argv);

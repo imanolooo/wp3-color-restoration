@@ -72,10 +72,14 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
         int bl = tl + _width;
         int br = bl + 1;
         Eigen::Vector3d ep(p[0], p[1],p[2]);
-        float dtl = (Eigen::Vector3d(_vertices.row(tl)) - ep).norm();
-        float dtr = (Eigen::Vector3d(_vertices.row(tr)) - ep).norm();
-        float dbl = (Eigen::Vector3d(_vertices.row(bl)) - ep).norm();
-        float dbr = (Eigen::Vector3d(_vertices.row(br)) - ep).norm();
+        float dtl = std::numeric_limits<float>::max();
+        float dtr = std::numeric_limits<float>::max();
+        float dbl = std::numeric_limits<float>::max();
+        float dbr = std::numeric_limits<float>::max();
+        if(tl >= 0 && tl < _vertices.rows()) dtl = (Eigen::Vector3d(_vertices.row(tl)) - ep).norm();
+        if(tr >= 0 && tr < _vertices.rows()) dtr = (Eigen::Vector3d(_vertices.row(tr)) - ep).norm();
+        if(bl >= 0 && bl < _vertices.rows())  dbl = (Eigen::Vector3d(_vertices.row(bl)) - ep).norm();
+        if(br >= 0 && br < _vertices.rows())  dbr = (Eigen::Vector3d(_vertices.row(br)) - ep).norm();
 
         std::vector<std::pair<float,int>> distances = {std::make_pair(dtl,tl), std::make_pair(dtr,tr), std::make_pair(dbl,bl), std::make_pair(dbr,br)};
         std::sort(distances.begin(), distances.end());
@@ -95,6 +99,13 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
         //add the vertex to the control points list.
         S.push_back({distances[0].second});
     }
+
+    /*S.push_back({11, 13, 18, 16});//Testing the area control
+    std::cout << "Area CP" << std::endl;
+    std::cout << _vertices.row(S.back()[0]) << std::endl;
+    std::cout << _vertices.row(S.back()[1]) << std::endl;
+    std::cout << _vertices.row(S.back()[2]) << std::endl;
+    std::cout << _vertices.row(S.back()[3]) << std::endl;*/
 
     //fixing the boundaries
     auto index = 0;
@@ -139,21 +150,31 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     std::cout << igl::biharmonic_coordinates(_vertices,_faces,S,k,_weights) << std::flush;
     std::cout << "Done in " << timer.elapsed() << std::endl;
 
+//    std::cout << "Weights rxc " << _weights.rows() << " x " << _weights.cols() << std::endl;
+
     QElapsedTimer timerTransf;
     timerTransf.start();
-    Eigen::MatrixXd ncp (newcp.size(),3);
-    for(auto i = 0; i < newcp.size(); ++i){
+    Eigen::MatrixXd ncp (newcp.size()/*+3*/,3);
+    auto i = 0;
+    for(; i < newcp.size(); ++i){
         ncp(i,0) = newcp[i][0];
         ncp(i,1) = newcp[i][1];
         ncp(i,2) = newcp[i][2];
     }
+   // ncp.block(i, 0, 3, 3).setIdentity();
+    /*ncp.row(i++) = _vertices.row(S.back()[0]);
+    ncp.row(i++) = _vertices.row(S.back()[1]);
+    ncp.row(i++) = _vertices.row(S.back()[2]);
+    ncp.row(i++) = _vertices.row(S.back()[3]);*/
+
+    std::cout << "NCP" << std::endl << ncp << std::endl;
 
     _verticesTransformed = _weights * ncp;
     std::cout << "Transformation in " << timerTransf.elapsed() << std::endl;
     /*std::cout << "Vertices transformed" << std::endl;
     for(auto i = 0; i < _verticesTransformed.rows(); ++i)
         std::cout << "v " << _verticesTransformed(i,0) << " " << _verticesTransformed(i,1) << " " << _verticesTransformed(i, 2) << std::endl;*/
-    int counter = 0;
+    /*int counter = 0;
     std::cout << "Original control points:" << std::endl;
     for(auto const &p : cp) {
         std::cout << p[0] << " " << p[1] << " " << p[2] << " ---- " << _vertices(S[counter][0],0) << " " << _vertices(S[counter][0],1) << " " << _vertices(S[counter][0],2) << std::endl;
@@ -161,7 +182,7 @@ void ColorTransformation2D::initControlPoints(const std::vector<std::vector<floa
     }
     std::cout << "Transformed control points:" << std::endl;
     for(auto const &p : newcp)
-        std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;
+        std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;*/
 }
 
 void ColorTransformation2D::sample(const std::vector<float> &p, std::vector<float> &pTransformed) const {
@@ -325,5 +346,13 @@ void ColorTransformation2D::removeRow(Eigen::MatrixXi& matrix, unsigned int rowT
         matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.bottomRows(numRows-rowToRemove);
 
     matrix.conservativeResize(numRows,numCols);
+}
+
+void ColorTransformation2D::print() {
+    std::cout << "Vertices: " << std::endl;
+    std::cout << _vertices << std::endl;
+    std::cout << "Transformed Vertices: " << std::endl;
+    std::cout << _verticesTransformed << std::endl;
+
 }
 

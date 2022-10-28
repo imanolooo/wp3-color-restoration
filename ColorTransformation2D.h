@@ -16,6 +16,8 @@ public:
     void sample(const std::vector<float> &p, std::vector<float> &pTransformed) const;
     void export2PLY(const std::string pathOri, const std::string pathTransf);
 
+    void print();
+
 private:
     bool computeBarycentricCoordinates(const Eigen::Vector3d &v0, const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &p,
                                         float &u, float &v) const;

@@ -34,6 +34,7 @@ public slots:
     void on_actionExport_Image_to_PLY_triggered();
     void on_actionExport_ColorTransf_to_PLY_triggered();
     void on_actionPrint_color_info_triggered();
+    void on_actionExport_Palette_to_PLY_triggered();
 
     void on_actionFit_in_view_triggered();
     void on_actionZoom_in_triggered();

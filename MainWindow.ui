@@ -173,6 +173,7 @@
     <addaction name="actionExport_Image_to_PLY"/>
     <addaction name="actionPrint_color_info"/>
     <addaction name="actionExport_ColorTransf_to_PLY"/>
+    <addaction name="actionExport_Palette_to_PLY"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -255,6 +256,11 @@
   <action name="actionColor_Transformation_3D">
    <property name="text">
     <string>Color Transformation 3D...</string>
+   </property>
+  </action>
+  <action name="actionExport_Palette_to_PLY">
+   <property name="text">
+    <string>Export Palette to PLY...</string>
    </property>
   </action>
  </widget>
