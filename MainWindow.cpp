@@ -565,7 +565,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
                 //std::cout << "Presampling" << std::endl;
                 _ct3D->sample(p, pt);
                 //std::cout << "Transformation: " << p[0] << ", " << p[1] << ", " << p[2] << " => " << pt[0] << ", " << pt[1] << ", " << pt[2] << std::endl;
-                pt[0] = lab[0];//keeping the lightness of the source
+                //pt[0] = lab[0];//keeping the lightness of the source
                 lab = color::lab<float>({pt[0], pt[1], pt[2]});
                 rgb = lab;
                 _correctedImage.setPixelColor(i, j, QColor(std::min(255.f,std::max(0.f,rgb[0]*255)),
