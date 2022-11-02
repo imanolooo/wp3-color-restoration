@@ -31,6 +31,9 @@ private:
     std::vector<std::pair<int,std::vector<float>>> _cp; //int => index in the cubeTetrahedron, vector<float> coordinates
 
     Eigen::MatrixXd _W; //biharmonic coordinates weights;
+    std::vector<std::vector<int>> _S;
+
+    bool _boundaries;
 
 };
 

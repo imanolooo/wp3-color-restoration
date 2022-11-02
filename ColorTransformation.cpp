@@ -9,6 +9,7 @@
 
 ColorTransformation::ColorTransformation(const std::vector<float> &dim, const std::vector<float> &orig, const std::vector<int> &res) {
     _ct = CubeTetrahedron(dim, orig, res);
+    _boundaries = true;
 }
 
 void ColorTransformation::setControlPoints(std::vector<std::vector<float>> &cp) {
@@ -63,13 +64,58 @@ void ColorTransformation::computeBiharmonicCoordinates() {
 
     //S => list of lists (of dim = 1 per points, dim > 1 per regions) of indexes of control points.
     //Control Points
-    std::vector<std::vector<int>> S;
+    _S.clear();
     for(auto &cp : _cp) {
-        S.push_back({cp.first});
+        _S.push_back({cp.first});
     }
     //boundaries
-    std::vector<int> f1 = {0, _ct.res()[2], (_ct.res()[2]+1)*(_ct.res()[1]+1)-1, _ct.res()[2]+1};
 
+    if(_boundaries) {
+        int boundRes = 15;
+        float incrI = _ct.res()[0]/(boundRes-1.f);
+        float incrJ = _ct.res()[1]/(boundRes-1.f);
+        float incrK = _ct.res()[2]/(boundRes-1.f);
+        //-X
+        for(auto k = 0; k < boundRes; ++k) {
+            for(auto j = 0; j < boundRes; ++j) {
+                _S.push_back({(int)(j*incrJ)*(_ct.res()[2]+1) + (int)(k*incrK)});
+            }
+        }
+        //+X
+        for(auto k = 0; k < boundRes; ++k) {
+            for(auto j = 0; j < boundRes; ++j) {
+                _S.push_back({_ct.res()[0]*(_ct.res()[1]+1)*(_ct.res()[2]+1) + (int)(j*incrJ)*(_ct.res()[2]+1) + (int)(k*incrK)});
+            }
+        }
+        /*Fails because we repeat points.
+         * //-Y
+        for(auto k = 0; k < boundRes; ++k) {
+            for(auto i = 0; i < boundRes; ++i) {
+                _S.push_back({i*incrI*(_ct.res()[1]+1)*(_ct.res()[2]+1) + k*incrK});
+            }
+        }
+        //+Y
+        for(auto k = 0; k < boundRes; ++k) {
+            for(auto i = 0; i < boundRes; ++i) {
+                _S.push_back({i*incrI*(_ct.res()[1]+1)*(_ct.res()[2]+1) + (_ct.res()[1])*(_ct.res()[2]+1) + k*incrK});
+            }
+        }
+        //-Z
+        for(auto j = 0; j < boundRes; ++j) {
+            for(auto i = 0; i < boundRes; ++i) {
+                _S.push_back({i*incrI*(_ct.res()[1]+1)*(_ct.res()[2]+1) + j*incrJ*(_ct.res()[2]+1)});
+            }
+        }
+        //+Z
+        for(auto j = 0; j < boundRes; ++j) {
+            for(auto i = 0; i < boundRes; ++i) {
+                _S.push_back({i*incrI*(_ct.res()[1]+1)*(_ct.res()[2]+1) + j*incrJ*(_ct.res()[2]+1) + _ct.res()[2]});
+            }
+        }*/
+
+        //_S.push_back({0, _ct.res()[2], (_ct.res()[2]+1)*(_ct.res()[1]+1)-1, _ct.res()[2]+1});
+
+    }
 
     //For 3D k needs to be 3.
     int k = 3;
@@ -77,7 +123,7 @@ void ColorTransformation::computeBiharmonicCoordinates() {
     QElapsedTimer timer;
     timer.start();
     std::cout << "Computing biharmonic coordinates... " << std::endl;
-    igl::biharmonic_coordinates(V,T,S,k,_W);
+    igl::biharmonic_coordinates(V,T,_S,k,_W);
     std::cout << "Done in " << timer.elapsed() << std::endl;
 
 }
@@ -86,11 +132,11 @@ void ColorTransformation::updateColorTransformation() {
     //V => High Res Verts
     Eigen::MatrixXd V(_ct.numVerts(),3);
 
-    //std::cout << "Updating Color Transformation..." << std::endl;
+    std::cout << "Updating Color Transformation..." << std::endl;
 
     //L => Low Res Verts
     //first control points
-    Eigen::MatrixXd L(_cp.size()+4,3);
+    Eigen::MatrixXd L(_S.size(),3);
     auto i = 0;
     for(i = 0; i < _cp.size(); ++i) {
         L(i,0) = _cp[i].second[0];
@@ -99,20 +145,17 @@ void ColorTransformation::updateColorTransformation() {
         //std::cout << L.row(i).x() << ", " << L.row(i).y() << ", " << L.row(i).z() << std::endl;
     }
     //then bounding regions.
-    float x, y, z;
-    _ct.vert(0, x, y, z);
-    L.row(i) = Eigen::Vector3d(x, y, z);
-    i++;
-    _ct.vert(_ct.res()[2], x, y, z);
-    L.row(i) = Eigen::Vector3d(x, y, z);
-    i++;
-    _ct.vert((_ct.res()[2]+1)*(_ct.res()[1]+1)-1, x, y, z);
-    L.row(i) = Eigen::Vector3d(x, y, z);
-    i++;
-    _ct.vert((_ct.res()[2]+1)*(_ct.res()[1]), x, y, z);
-    L.row(i) = Eigen::Vector3d(x, y, z);
+    //L.block(i, 0, 4, 3).setIdentity();
+    for(; i < _S.size(); ++i) {
+        float x,y,z;
+        _ct.vert(_S[i][0], x, y ,z);
+        L.row(i) = Eigen::Vector3d(x, y, z);
+    }
 
-    std::cout << L << std::endl;
+    //std::cout << "W " << _W.rows() << " x " << _W.cols() << std::endl;
+
+    //std::cout << "L " << L.rows() << " x " << L.cols() << std::endl;
+    //std::cout << L << std::endl;
 
     V = _W * L;
 

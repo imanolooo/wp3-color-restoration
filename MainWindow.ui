@@ -191,6 +191,7 @@
     <addaction name="actionColor_Transformation_3D"/>
     <addaction name="actionCompute_LAB"/>
     <addaction name="actionPrint_Transformation_Errors"/>
+    <addaction name="actionTest_Transformation_on_Images"/>
    </widget>
    <addaction name="menuLoad_Image"/>
    <addaction name="menuView"/>
@@ -261,6 +262,11 @@
   <action name="actionExport_Palette_to_PLY">
    <property name="text">
     <string>Export Palette to PLY...</string>
+   </property>
+  </action>
+  <action name="actionTest_Transformation_on_Images">
+   <property name="text">
+    <string>Test Transformation on Images...</string>
    </property>
   </action>
  </widget>

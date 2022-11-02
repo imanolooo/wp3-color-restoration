@@ -13,8 +13,6 @@
 CubeTetrahedron::CubeTetrahedron(const std::vector<float> &dimensions, const std::vector<float> &origin, const std::vector<int> &resolution)
     : _dimensions(dimensions), _origin(origin), _resolution(resolution) {
 
-    //TODO: Use origin and resolution to create the points.
-
     //std::vector<float> end = {_origin[0]+_dimensions[0], _origin[1]+_dimensions[1], _origin[2]+_dimensions[2]};
     std::vector<float> incr = {_dimensions[0]/_resolution[0], _dimensions[1]/_resolution[1], _dimensions[2]/_resolution[2]};
 
@@ -129,9 +127,15 @@ void CubeTetrahedron::sample(const std::vector<float> &p, std::vector<float> &pT
     //std::cout << "Sampling" << std::endl;
     //std::cout << p[0] << ", " << p[1] << ", " << p[2] << " => " << pTransformed[0] << ", " << pTransformed[1] << ", " << pTransformed[2] << std::endl;
 
+    //put p inside the range using the trick of max-0.01.
+    std::vector<float> pNorm = {std::max(_origin[0],std::min(_origin[0]+_dimensions[0]-0.01f,p[0])),
+                                std::max(_origin[1],std::min(_origin[1]+_dimensions[1]-0.01f,p[1])),
+                                std::max(_origin[2],std::min(_origin[2]+_dimensions[2]-0.01f,p[2]))};
+    //std::cout << pNorm[0] << ", " << pNorm[1] << ", " << pNorm[2] << std::endl;
+
     //find the cell where the point lies
     std::vector<float> incr = {_dimensions[0]/_resolution[0], _dimensions[1]/_resolution[1], _dimensions[2]/_resolution[2]};
-    std::vector<float> ijk = {(p[0]-_origin[0])/incr[0], (p[1]-_origin[1])/incr[1], (p[2]-_origin[2])/incr[2]};
+    std::vector<float> ijk = {(pNorm[0]-_origin[0])/incr[0], (pNorm[1]-_origin[1])/incr[1], (pNorm[2]-_origin[2])/incr[2]};
     unsigned int indexVLC = (int)ijk[0] * (_resolution[1]+1)*(_resolution[2]+1) + (int)ijk[1] * (_resolution[2]+1) + (int)ijk[2];
     unsigned int indexCell = (int)ijk[0] * (_resolution[1])*(_resolution[2]) + (int)ijk[1] * (_resolution[2]) + (int)ijk[2];
 
@@ -140,7 +144,7 @@ void CubeTetrahedron::sample(const std::vector<float> &p, std::vector<float> &pT
 
     int iv1, iv2, iv3, iv4;
     float bc1, bc2, bc3, bc4;
-    bool found = look4BCInCube(p, indexCell, iv1, iv2, iv3, iv4, bc1, bc2, bc3, bc4);
+    bool found = look4BCInCube(pNorm, indexCell, iv1, iv2, iv3, iv4, bc1, bc2, bc3, bc4);
     int counter = 1;
     while(!found) {
 
@@ -155,12 +159,13 @@ void CubeTetrahedron::sample(const std::vector<float> &p, std::vector<float> &pT
                 for(auto k = -counter; k < counter && !found; ++k) {
                     int currentIndexCell = indexCell + i*deltaX + j*deltaY + k*deltaZ;
 
-                    found = look4BCInCube(p, currentIndexCell, iv1, iv2, iv3, iv4, bc1, bc2, bc3, bc4);
+                    found = look4BCInCube(pNorm, currentIndexCell, iv1, iv2, iv3, iv4, bc1, bc2, bc3, bc4);
                 }
             }
         }
 
         if(counter == 10){//crash the application if the cell is not suitable to be found
+            std::cout << "Impossible to find transform " << p[0] << ", " << p[1] << ", " << p[2] <<std::endl;
             std::cout <<_vertices[-1][4] << std::endl;
         }
 
@@ -277,6 +282,7 @@ bool CubeTetrahedron::look4BCInCube(const std::vector<float> &p, const int index
                                     float &bc1, float &bc2, float &bc3, float &bc4) {
     //find the tetra of the cell where the point lies => check if baricentric coords are in range.
     //compute baricentric coordinates in the tetra
+
     bool found = false;
     for(auto i = 0; i < 12 && !found; ++i) {
 

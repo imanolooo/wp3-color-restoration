@@ -7,6 +7,7 @@
 #include <iostream>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QDirIterator>
 #include <QImageReader>
 #include <QElapsedTimer>
 #include "MainWindow.h"
@@ -33,8 +34,9 @@ MainWindow::MainWindow(QWidget *parent) :
     _ct2D = NULL;
     _ct3D = NULL;
 
+    _need2ComputeBHC = true;
+
     loadImage("/home/imanol/Dades/wp3-color_restoration/textures/srgb/LOW-Pedret_XII_color_absS.png");
-    on_actionFit_in_view_triggered();
 }
 
 MainWindow::~MainWindow() {
@@ -180,6 +182,7 @@ void MainWindow::updateFinalColorsGUI() {
 }
 
 void MainWindow::avgCurrentColor() {
+    _need2ComputeBHC = true;
     QString colorName = ui->currentColor->currentText();
     float r = 0, g = 0, b = 0;
     for(auto const &c : _pickedColors[colorName.toStdString()]) {
@@ -195,6 +198,7 @@ void MainWindow::avgCurrentColor() {
 }
 
 void MainWindow::changeCurrentColor() {
+    _need2ComputeBHC = true;
     QString colorName = ui->currentColor->currentText();
     int r = _avgColors.at(colorName.toStdString()).red();
     int g = _avgColors.at(colorName.toStdString()).green();
@@ -272,11 +276,11 @@ void MainWindow::loadImage(std::string path){
     const QImage maskImage = maskReader.read();
     if(maskImage.isNull()) {
         std::cout << "No mask image found!" << std::endl;
+        _maskImage = QImage();
     } else {
         _maskImage = maskImage;
     }
 
-    std::cout << _maskImage.width() << " " << _maskImage.height() << std::endl;
 
 
     ui->scrollAreaImage->setBackgroundRole(QPalette::Dark);
@@ -285,6 +289,11 @@ void MainWindow::loadImage(std::string path){
     ui->scrollAreaImage->setWidgetResizable(false);
 
     _scaleFactor = 1;
+    scaleImage(_scaleFactor);
+
+    if(!ui->originalRadioButton->isChecked())
+        ui->originalRadioButton->setChecked(true);
+
 }
 
 void MainWindow::on_actionExport_Image_to_PLY_triggered() {
@@ -310,9 +319,9 @@ void MainWindow::on_actionExport_ColorTransf_to_PLY_triggered() {
         return;
     }
     QString fileNameOri = QFileDialog::getSaveFileName(this,
-                                                    tr("Export original Color Transformation to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
+                                                    tr("Export original Color Transformation to PLY..."), "/home/imanol/Dades/wp3-color_restoration", tr("PLY Files (*.ply)"));
     QString fileNameTransf = QFileDialog::getSaveFileName(this,
-                                                    tr("Export transformed Color Transformation to PLY..."), "/home/imanol/data/wp3-color_restoration", tr("PLY Files (*.ply)"));
+                                                    tr("Export transformed Color Transformation to PLY..."), "/home/imanol/Dades/wp3-color_restoration", tr("PLY Files (*.ply)"));
 
     std::cout << "Exporting transformations to PLY..." << std::flush;
     if(_ct2D != NULL)   _ct2D->export2PLY(fileNameOri.toStdString(), fileNameTransf.toStdString());
@@ -450,7 +459,7 @@ void MainWindow::on_actionColor_Transformation_triggered() {
     _correctedImage = _image;
     for(auto i = 0; i < _correctedImage.width(); ++i) {
         for(auto j = 0; j < _correctedImage.height(); ++j) {
-            if(qRed(_maskImage.pixel(i,j)) > 128) {
+            if(_maskImage.width() == 0 || qRed(_maskImage.pixel(i,j)) > 128) {
                 color::rgb<float> rgb({ qRed(_correctedImage.pixel(i,j))/255.f, qGreen(_correctedImage.pixel(i,j))/255.f, qBlue(_correctedImage.pixel(i,j))/255.f});
                 color::lab<float> lab;
                 lab = rgb;
@@ -515,21 +524,24 @@ void MainWindow::on_actionColor_Transformation_triggered() {
 void MainWindow::on_actionColor_Transformation_3D_triggered() {
     ui->correctedRadioButton->setEnabled(true);
 
-    std::cout << "Building the color transformation structures..." << std::endl;
-    std::vector<float> dim = {100, 255, 255};
-    std::vector<float> orig = {0, -128, -128};
-    std::vector<int> res = {30, 30, 30};
-
     std::vector<std::vector<float>> sourceColors;
     std::vector<std::vector<float>> targetColors;
     computeSourceAndTargetColors(sourceColors, targetColors, true);
 
-    _ct3D = new ColorTransformation(dim, orig, res);
+    if(_need2ComputeBHC) {
+        std::cout << "Building the color transformation structures..." << std::endl;
+        std::vector<float> dim = {100, 255, 255};
+        std::vector<float> orig = {0, -128, -128};
+        std::vector<int> res = {30, 30, 30};
 
-    std::cout << "Initializing the color control points..." << std::endl;
-    _ct3D->setControlPoints(sourceColors);//, targetColors);
+        _ct3D = new ColorTransformation(dim, orig, res);
 
-    _ct3D->computeBiharmonicCoordinates();
+        std::cout << "Initializing the color control points..." << std::endl;
+        _ct3D->setControlPoints(sourceColors);//, targetColors);
+
+        _ct3D->computeBiharmonicCoordinates();
+    }
+    _need2ComputeBHC = false;
 
     std::cout << "Updating control points..." << std::endl;
     for(auto i = 0; i < targetColors.size(); ++i)
@@ -543,7 +555,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
     _correctedImage = _image;
     for(auto i = 0; i < _correctedImage.width(); ++i) {
         for(auto j = 0; j < _correctedImage.height(); ++j) {
-            if(qRed(_maskImage.pixel(i,j)) > 128) {
+            if(_maskImage.width() == 0 || qRed(_maskImage.pixel(i,j)) > 128) {
                 //std::cout << i << ", " << j << std::endl;
                 color::rgb<float> rgb({ qRed(_correctedImage.pixel(i,j))/255.f, qGreen(_correctedImage.pixel(i,j))/255.f, qBlue(_correctedImage.pixel(i,j))/255.f});
                 color::lab<float> lab;
@@ -553,7 +565,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
                 //std::cout << "Presampling" << std::endl;
                 _ct3D->sample(p, pt);
                 //std::cout << "Transformation: " << p[0] << ", " << p[1] << ", " << p[2] << " => " << pt[0] << ", " << pt[1] << ", " << pt[2] << std::endl;
-                //pt[0] = lab[0];//keeping the lightness of the source
+                pt[0] = lab[0];//keeping the lightness of the source
                 lab = color::lab<float>({pt[0], pt[1], pt[2]});
                 rgb = lab;
                 _correctedImage.setPixelColor(i, j, QColor(std::min(255.f,std::max(0.f,rgb[0]*255)),
@@ -835,4 +847,21 @@ void MainWindow::on_actionExport_Palette_to_PLY_triggered() {
     plyOutSamples.addVertexColors(colorsSamples);
     //plyOut.addFaceIndices(_faces);
     plyOutSamples.write(fileNameSamples.toStdString(), happly::DataFormat::ASCII);
+}
+
+void MainWindow::on_actionTest_Transformation_on_Images_triggered() {
+    std::cout << "Testing the transformation in a set of images... " << std::endl;
+    std::string path = "/home/imanol/Dades/wp3-color_restoration/Images4Testing/";
+    QString pathDir = QFileDialog::getExistingDirectory(this, "Select direcrtory", path.c_str());
+    QDirIterator dirIterator(pathDir, {"*.jpg", "*.jpeg", "*.png"}, QDir::Files);
+    while(dirIterator.hasNext()) {
+        std::string imagePath = dirIterator.next().toStdString();
+        if(imagePath.find("corrected") == std::string::npos) {
+            std::cout << "Handling " << imagePath << std::endl;
+            loadImage(imagePath);
+            on_actionColor_Transformation_3D_triggered();
+            std::string correctedPath = imagePath.substr(0, imagePath.find_last_of(".")) + "-corrected.png";
+            _correctedImage.save(correctedPath.c_str());
+        }
+    }
 }

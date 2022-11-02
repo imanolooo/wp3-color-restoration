@@ -44,6 +44,7 @@ public slots:
     void on_actionColor_Transformation_3D_triggered();
     void on_actionCompute_LAB_triggered();
     void on_actionPrint_Transformation_Errors_triggered();
+    void on_actionTest_Transformation_on_Images_triggered();
 
     void currentColorChanged(QString text);
     void updateOriginalColorsGUI();
@@ -73,6 +74,7 @@ private:
     double _scaleFactor;
     ColorTransformation2D * _ct2D;
     ColorTransformation * _ct3D;
+    bool _need2ComputeBHC;
 };
 
 
