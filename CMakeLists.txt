@@ -23,7 +23,7 @@ find_package(Qt5 COMPONENTS
 #option(LIBIGL_GLFW "Build target igl::glfw" ON)
 include(libigl)
 
-add_executable(color_restoration main.cpp MainWindow.cpp MainWindow.h MainWindow.ui PickedColor.cpp PickedColor.h PointCloud.cpp PointCloud.h Point.cpp Point.h happly.h CubeTetrahedron.cpp CubeTetrahedron.h ColorTransformation.cpp ColorTransformation.h ColorTransformation2D.cpp ColorTransformation2D.h)
+add_executable(color_restoration main.cpp MainWindow.cpp MainWindow.h MainWindow.ui PickedColor.cpp PickedColor.h PointCloud.cpp PointCloud.h Point.cpp Point.h happly.h CubeTetrahedron.cpp CubeTetrahedron.h ColorTransformation.cpp ColorTransformation.h ColorTransformation2D.cpp ColorTransformation2D.h LabelImage.cpp LabelImage.h)
 
 target_link_libraries(color_restoration
         Qt5::Core

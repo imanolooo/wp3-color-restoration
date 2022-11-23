@@ -21,7 +21,9 @@
 
 MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
-    _imageLabel = new QLabel();
+    _imageLabel = new LabelImage(this);
+    QObject::connect(_imageLabel, &LabelImage::selectionCompleted, this, &MainWindow::exportSelection);
+    //_imageLabel->enableSelection();
     _imageLabel->setBackgroundRole(QPalette::Base);
     _imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     _imageLabel->setScaledContents(true);
@@ -46,8 +48,8 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadPickedColors() {
-    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego270922.json";
-    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego270922.json";
+    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego171122.json";
+    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego171122.json";
 
     std::ifstream fSrc(srcPaletteFile);
     std::ifstream fDst(dstPaletteFile);
@@ -266,7 +268,7 @@ void MainWindow::loadImage(std::string path){
     }
 
     _image = newImage;
-    _imageLabel->setPixmap(QPixmap::fromImage(_image));
+    _imageLabel->setImage(_image);
 
     //loading mask if exist
     fileName.insert(fileName.lastIndexOf("."), "-mask");
@@ -418,9 +420,21 @@ void MainWindow::on_actionZoom_out_triggered() {
 }
 
 void MainWindow::scaleImage(double factor) {
+    //alternative to see pixelation: https://stackoverflow.com/questions/17692900/qt-c-resize-pixmap-and-keep-pixelation
+
     _scaleFactor *= factor;
 
-    _imageLabel->resize(_scaleFactor * _imageLabel->pixmap()->size());
+
+    if(ui->originalRadioButton->isChecked())
+        _imageLabel->setPixmap(QPixmap::fromImage(_image).scaled(_image.width()*_scaleFactor,
+                                                         _image.height()*_scaleFactor,
+                                                         Qt::IgnoreAspectRatio, Qt::FastTransformation));
+    else
+        _imageLabel->setPixmap(QPixmap::fromImage(_correctedImage).scaled(_image.width()*_scaleFactor,
+                                                                 _image.height()*_scaleFactor,
+                                                                 Qt::IgnoreAspectRatio, Qt::FastTransformation));
+    _imageLabel->resize(_imageLabel->pixmap()->size());
+    //_imageLabel->resize(_scaleFactor * _imageLabel->pixmap()->size());
 
     adjustScrollBar(ui->scrollAreaImage->horizontalScrollBar(), factor);
     adjustScrollBar(ui->scrollAreaImage->verticalScrollBar(), factor);
@@ -749,7 +763,7 @@ void MainWindow::printInfoVectorsColor(const std::vector<std::string> &names, co
 void MainWindow::computeSourceAndTargetColors(std::vector<std::vector<float>> &sourceColors, std::vector<std::vector<float>> &targetColors, bool considerLightness) {
     std::cout << "Computing the color control points..." << std::endl;
     for(auto const &c : _avgColors) {
-        std::cout << c.first << std::endl;
+        //std::cout << c.first << std::endl;
         color::rgb<float> rgb( { c.second.red()/255.f, c.second.green()/255.f, c.second.blue()/255.f});
         color::lab<float> lab;
         lab = rgb;
@@ -794,18 +808,20 @@ void MainWindow::on_actionExport_Palette_to_PLY_triggered() {
     for(const auto &v : sourceColors)
         positions.push_back({v[0], v[1], v[2]});
 
-    colors.push_back({0,0,0});
-    colors.push_back({68./255.,68./255.,68./255.});
-    colors.push_back({144./255.,20./255.,20/255.});
-    colors.push_back({0,108./255.,0});
-    colors.push_back({65./255.,1.,86./255.});
-    colors.push_back({174./255.,174./255.,174./255.});
-    colors.push_back({116./255.,116./255.,116./255.});
-    colors.push_back({1.,0,1.});
-    colors.push_back({1.,0,0});
-    colors.push_back({223./255.,223./255.,223./255.});
-    colors.push_back({1,230./255.,163./255.});
-    colors.push_back({1.,253./255.,0});
+    colors.push_back({0,0,0});//black
+    colors.push_back({68./255.,68./255.,68./255.});//deep grey
+    colors.push_back({144./255.,20./255.,20/255.});//deep red
+    colors.push_back({0,108./255.,0});//green
+    colors.push_back({65./255.,1.,86./255.});//light green
+    colors.push_back({174./255.,174./255.,174./255.});//light grey
+    colors.push_back({116./255.,116./255.,116./255.});//middle grey
+    colors.push_back({1,1,0.8});//pale ocher //aka yellow super light ocher
+    colors.push_back({1.,0,1.});//pink
+    colors.push_back({1.,0,0});//red
+    colors.push_back({223./255.,223./255.,223./255.});//white
+    colors.push_back({1,230./255.,163./255.});//yellow light ocher
+    colors.push_back({1.,253./255.,0});//yellow ocher
+
 
     //range=["#000000", "#444444", "#901414", "#006c00", "#41ff56", "#aeaeae", "#747474", "#ff00ff", "#ff0000", "#dfdfdf", "#ffe6a3", "#fffd00"]
 
@@ -864,4 +880,145 @@ void MainWindow::on_actionTest_Transformation_on_Images_triggered() {
             _correctedImage.save(correctedPath.c_str());
         }
     }
+    std::cout << "Test on images finished!" << std::endl;
+}
+
+void MainWindow::exportSelection(QPoint start, QPoint end) {
+
+    int startX = _image.width()*((float)start.x()/_imageLabel->width());
+    int startY = _image.width()*((float)start.y()/_imageLabel->width());
+    int endX = _image.width()*((float)end.x()/_imageLabel->width());
+    int endY = _image.width()*((float)end.y()/_imageLabel->width());
+
+    std::cout << "Selection from " << startX << ", " << startY
+                << " to " << endX << ", " << endY << std::endl;
+    //todo; export ply with edges
+
+    //initi data structures
+    std::vector<std::array<double,3>> positions, colors, positionsFinal, colorsFinal;
+    positions.reserve(2*(endX-startX)*(endY-startY));
+    colors.reserve(2*(endX-startX)*(endY-startY));
+    positionsFinal.reserve((endX-startX)*(endY-startY));
+    colorsFinal.reserve((endX-startX)*(endY-startY));
+
+    //compute positions and colors
+    for(auto i = startX; i < endX; ++i) {
+        for(auto j = startY; j < endY; ++j) {
+            QRgb color = _image.pixel(i,j);
+            color::rgb<double> rgb( { qRed(color)/255., qGreen(color)/255., qBlue(color)/255.});
+            color::lab<double> lab;
+            lab = rgb;
+            positions.push_back({lab[0], lab[1], lab[2]});
+            colors.push_back({rgb[0], rgb[1], rgb[2]});
+
+            color = _correctedImage.pixel(i,j);
+            rgb = color::rgb<double>({ qRed(color)/255., qGreen(color)/255., qBlue(color)/255.});
+            lab = rgb;
+            positions.push_back({lab[0], lab[1], lab[2]});
+            colors.push_back({rgb[0], rgb[1], rgb[2]});
+            positionsFinal.push_back({lab[0], lab[1], lab[2]});
+            colorsFinal.push_back({rgb[0], rgb[1], rgb[2]});
+        }
+    }
+
+    //create ply
+    happly::PLYData ply;
+    ply.addVertexPositions(positions);
+    ply.addVertexColors(colors);
+    ply.write("/home/imanol/Dades/wp3-color_restoration/selection.ply", happly::DataFormat::ASCII);
+    happly::PLYData plyFinal;
+    plyFinal.addVertexPositions(positionsFinal);
+    plyFinal.addVertexColors(colorsFinal);
+    plyFinal.write("/home/imanol/Dades/wp3-color_restoration/selectionFinal.ply", happly::DataFormat::ASCII);
+
+    //create edges
+    std::ifstream input("/home/imanol/Dades/wp3-color_restoration/selection.ply");
+    std::ofstream output("/home/imanol/Dades/wp3-color_restoration/selectionWithEdges.ply");
+    if(input && output) {
+        std::string line;
+        while(std::getline(input, line)) {
+            if(line.find("end_header") != std::string::npos) {
+                output << "element edge " << (endX-startX)*(endY-startY) << std::endl;
+                output << "property int vertex1" << std::endl;
+                output << "property int vertex2" << std::endl;
+            }
+            output << line << std::endl;
+        }
+        for(auto i = 0; i < (endX-startX)*(endY-startY); ++i)
+            output << i*2 << " " << i*2+1 << std::endl;
+    } else
+        std::cout << "Problem exporting the selection with edges!" << std::endl;
+
+
+    input.close();
+    output.close();
+
+}
+
+void MainWindow::on_actionExport_transf_per_zone_triggered() {
+    _imageLabel->enableSelection();
+}
+
+void MainWindow::on_actionExport_transf_per_L_triggered() {
+    std::cout << "Exporting transf per luminance..." << std::endl;
+    for(auto l = 0; l <= 100; l+=1) {
+        float step = 5.;
+        int minA = -15;
+        int maxA = 45;
+        int minB = -30;
+        int maxB = 60;
+        int sizeA = (maxA - minA)/step + 1;
+        int sizeB = (maxB - minB)/step + 1;
+
+        std::vector<std::array<double,3>> positions, colors;
+        positions.reserve(sizeA * sizeB);
+        colors.reserve(sizeA * sizeB);
+        for(auto a = minA; a <= maxA; a+= step) {
+            for(auto b =  minB; b <= maxB; b+= step) {
+                std::vector<float> p({(float)l, (float)a, (float)b});
+                std::vector<float> pt = p;
+                _ct3D->sample(p, pt);
+                positions.push_back({pt[0], pt[1], pt[2]});
+                color::lab<double> lab({pt[0], pt[1], pt[2]});
+                color::rgb<double> rgb;
+                rgb = lab;
+                colors.push_back({rgb[0], rgb[1], rgb[2]});
+            }
+        }
+
+        std::vector<std::vector<size_t>> faces;
+        faces.reserve((sizeA-1)*(sizeB-1)*2);
+        //std::cout << "SizeA " << sizeA << " SizeB " << sizeB << std::endl;
+        for(auto i = 0; i < sizeA-1; ++i) {
+            for(auto j = 0; j < sizeB-1; ++j) {
+                size_t v1, v2, v3, v4;
+                v1 = i*(sizeB) + j;
+                v2 = i*(sizeB) + j + 1;
+                v3 = i*(sizeB) + j + sizeB;
+                v4 = i*(sizeB) + j + sizeB + 1;
+
+                faces.push_back({v1, v3, v2});
+                faces.push_back({v2, v3, v4});
+                //std::cout << "i " << i << " j " << j << " v1 " << v1  << " v2 " << v2  << " v3 " << v3  << " v4 " << v4 << std::endl;
+            }
+        }
+
+        happly::PLYData ply;
+        ply.addVertexPositions(positions);
+        ply.addVertexColors(colors);
+        ply.addFaceIndices(faces);
+
+        std::string path = "/home/imanol/Dades/wp3-color_restoration/luminance/l" + std::to_string(l) + ".ply";
+        ply.write(path, happly::DataFormat::ASCII);
+    }
+
+    std::cout << "Done" << std::endl;
+
+}
+
+void MainWindow::on_actionExport_weights_triggered() {
+    std::cout << "Exporting weights..." << std::endl;
+    _ct3D->exportWeights("/home/imanol/Dades/wp3-color_restoration/weights/");
+
+    std::cout << "Done!" << std::endl;
 }

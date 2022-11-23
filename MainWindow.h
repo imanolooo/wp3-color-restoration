@@ -12,6 +12,7 @@
 #include "PickedColor.h"
 #include "ColorTransformation2D.h"
 #include "ColorTransformation.h"
+#include "LabelImage.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -31,10 +32,15 @@ public:
 
 public slots:
     void on_actionLoad_Image_triggered();
+    void on_actionPrint_color_info_triggered();
+
+
     void on_actionExport_Image_to_PLY_triggered();
     void on_actionExport_ColorTransf_to_PLY_triggered();
-    void on_actionPrint_color_info_triggered();
     void on_actionExport_Palette_to_PLY_triggered();
+    void on_actionExport_transf_per_zone_triggered();
+    void on_actionExport_transf_per_L_triggered();
+    void on_actionExport_weights_triggered();
 
     void on_actionFit_in_view_triggered();
     void on_actionZoom_in_triggered();
@@ -55,6 +61,8 @@ public slots:
     void originalRadioButtonClicked(bool b);
     void correctedRadioButtonClicked(bool b);
 
+    void exportSelection(QPoint start, QPoint end);
+
 private:
     void loadImage(std::string path);
     void computeSourceAndTargetColors(std::vector<std::vector<float>> &sourceColors, std::vector<std::vector<float>> &targetColors, bool considerLightness);
@@ -70,7 +78,7 @@ private:
     std::map<std::string, PickedColor> _finalColors;
     Ui::MainWindow *ui;
     QImage _image, _maskImage, _correctedImage;
-    QLabel * _imageLabel;
+    LabelImage * _imageLabel;
     double _scaleFactor;
     ColorTransformation2D * _ct2D;
     ColorTransformation * _ct3D;

@@ -353,6 +353,8 @@ void ColorTransformation2D::print() {
     std::cout << _vertices << std::endl;
     std::cout << "Transformed Vertices: " << std::endl;
     std::cout << _verticesTransformed << std::endl;
+    std::cout << "Weights: " << std::endl;
+    std::cout << _weights << std::endl;
 
 }
 

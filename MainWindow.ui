@@ -170,10 +170,7 @@
      <string>File</string>
     </property>
     <addaction name="actionLoad_Image"/>
-    <addaction name="actionExport_Image_to_PLY"/>
     <addaction name="actionPrint_color_info"/>
-    <addaction name="actionExport_ColorTransf_to_PLY"/>
-    <addaction name="actionExport_Palette_to_PLY"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -193,7 +190,19 @@
     <addaction name="actionPrint_Transformation_Errors"/>
     <addaction name="actionTest_Transformation_on_Images"/>
    </widget>
+   <widget class="QMenu" name="menuExports">
+    <property name="title">
+     <string>Exports</string>
+    </property>
+    <addaction name="actionExport_Image_to_PLY"/>
+    <addaction name="actionExport_ColorTransf_to_PLY"/>
+    <addaction name="actionExport_Palette_to_PLY"/>
+    <addaction name="actionExport_transf_per_zone"/>
+    <addaction name="actionExport_transf_per_L"/>
+    <addaction name="actionExport_weights"/>
+   </widget>
    <addaction name="menuLoad_Image"/>
+   <addaction name="menuExports"/>
    <addaction name="menuView"/>
    <addaction name="menuTransform"/>
   </widget>
@@ -267,6 +276,21 @@
   <action name="actionTest_Transformation_on_Images">
    <property name="text">
     <string>Test Transformation on Images...</string>
+   </property>
+  </action>
+  <action name="actionExport_transf_per_zone">
+   <property name="text">
+    <string>Export transf. per zone...</string>
+   </property>
+  </action>
+  <action name="actionExport_transf_per_L">
+   <property name="text">
+    <string>Export transf per L...</string>
+   </property>
+  </action>
+  <action name="actionExport_weights">
+   <property name="text">
+    <string>Export weights...</string>
    </property>
   </action>
  </widget>

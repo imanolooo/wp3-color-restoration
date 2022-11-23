@@ -6,10 +6,13 @@
 #include <QElapsedTimer>
 #include "ColorTransformation.h"
 
+#include <igl/colormap.h>
+#include "happly.h"
+
 
 ColorTransformation::ColorTransformation(const std::vector<float> &dim, const std::vector<float> &orig, const std::vector<int> &res) {
     _ct = CubeTetrahedron(dim, orig, res);
-    _boundaries = true;
+    _boundaries = false;
 }
 
 void ColorTransformation::setControlPoints(std::vector<std::vector<float>> &cp) {
@@ -70,6 +73,7 @@ void ColorTransformation::computeBiharmonicCoordinates() {
     }
     //boundaries
 
+    std::cout << "Boundaries " << _boundaries << std::endl;
     if(_boundaries) {
         int boundRes = 15;
         float incrI = _ct.res()[0]/(boundRes-1.f);
@@ -118,7 +122,7 @@ void ColorTransformation::computeBiharmonicCoordinates() {
     }
 
     //For 3D k needs to be 3.
-    int k = 3;
+    int k = 0;
 
     QElapsedTimer timer;
     timer.start();
@@ -183,4 +187,65 @@ void ColorTransformation::print() {
         _ct.tetra(i, i1, i2, i3, i4);
         std::cout << i << " => " << i1 << ", " << i2 << ", " << i3 << ", " << i4 << std::endl;
     }*/
+}
+
+void ColorTransformation::exportWeights(const std::string path) {
+
+    std::vector<std::array<double,3>> positions, colors;
+    positions.reserve(_ct.numVerts());
+    colors.reserve(_ct.numVerts());
+
+    //populate the positions
+    float x, y, z;
+    for(auto i = 0; i < _ct.numVerts(); ++i) {
+        _ct.vert(i, x, y, z);
+        positions.push_back({x,y,z});
+    }
+
+    std::cout << "Positions done" << std::endl;
+
+    for(auto i = 0; i < _S.size(); ++i) {
+        std::string file = "Weight" + std::to_string(i) + ".ply";
+
+        //compute the colors
+        colors.clear();
+
+        double caxis_min = _W.minCoeff();
+        double caxis_max = _W.maxCoeff();
+        Eigen::MatrixXd CM;
+
+        double max_abs = std::max(abs(caxis_min), abs(caxis_max));
+        Eigen::MatrixXd UV = _W.col(i).array();//(abs(_W.col(i).array())/(max_abs));;//((_W.array()-caxis_min)/(caxis_max-caxis_min));
+        igl::colormap(igl::COLOR_MAP_TYPE_JET,UV.eval(),-1,1,CM);
+
+        std::cout << "W " << _W.rows() << " x " << _W.cols() << std::endl;
+        std::cout << "Warray " << _W.col(i).array().rows() << " x " << _W.col(i).array().cols() << std::endl;
+        std::cout << "UV " << UV.rows() << " x " << UV.cols() << std::endl;
+        std::cout << "CM " << CM.rows() << " x " << CM.cols() << std::endl;
+        std::cout << caxis_min << " -> " << caxis_max << " => " << max_abs << std::endl;
+        std::cout << "colormap done" << std::endl;
+
+        float r, g, b;
+        for(auto i = 0; i < _ct.numVerts(); ++i) {
+            r = CM(i,0);
+            g = CM(i,1);
+            b = CM(i,2);
+            colors.push_back({r,g,b});
+        }
+
+       /* int counter = 0;
+        for(auto p : colors) {
+            std::cout << counter << "/" << colors.size()  << " pos " << positions.size() << std::endl;
+            std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;
+            counter++;
+        }
+        std::cout << "colors printed" << std::endl;*/
+
+
+        happly::PLYData ply;
+        ply.addVertexPositions(positions);
+        ply.addVertexColors(colors);
+        std::string pathName = path + file;
+        ply.write(pathName, happly::DataFormat::ASCII);
+    }
 }

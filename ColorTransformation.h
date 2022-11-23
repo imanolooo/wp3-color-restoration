@@ -23,6 +23,7 @@ public:
     void print();
     void export2PLY(const std::string path, const std::string pathTransf) { _ct.export2PLY(path, pathTransf); }
     void export2PLYTetras(const std::string path) { _ct.export2PLYTetras(path); }
+    void exportWeights(const std::string path);
 
     CubeTetrahedron* cubeTetra() { return &_ct; }
 
