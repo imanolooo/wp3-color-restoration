@@ -73,6 +73,18 @@ void MainWindow::loadPickedColors() {
             r += c.red(); g += c.green(); b += c.blue();
         }
         r /= pc.second.size();  g /= pc.second.size(); b /= pc.second.size();
+
+        //median
+        /*std::vector<float> vr, vg, vb;
+        for(auto const& c : pc.second) {
+            vr.push_back(c.red()); vg.push_back(c.green()); vb.push_back(c.blue());
+        }
+        int n = vr.size()/2;
+        std::nth_element(vr.begin(), vr.begin()+n, vr.end());
+        std::nth_element(vg.begin(), vg.begin()+n, vg.end());
+        std::nth_element(vb.begin(), vb.begin()+n, vb.end());
+        r = vr[n]; g = vg[n]; b = vb[n];*/
+
         _avgColors.emplace(pc.first,PickedColor(pc.first, "compute", -1, -1, 0, r, g, b));
     }
 
@@ -785,14 +797,14 @@ void MainWindow::computeSourceAndTargetColors(std::vector<std::vector<float>> &s
 void MainWindow::on_actionExport_Palette_to_PLY_triggered() {
 
     QString fileNameSamples = QFileDialog::getSaveFileName(this,
-                                                    tr("Samples..."), "/home/imanol/data/wp3-color_restoration/",
+                                                    tr("Samples..."), "/home/imanol/Dades/wp3-color_restoration/",
                                                     tr("PointCloud Files (*.ply)"));
     QString fileNameAVG = QFileDialog::getSaveFileName(this,
-                                                           tr("Palette..."), "/home/imanol/data/wp3-color_restoration/",
+                                                           tr("Palette..."), "/home/imanol/Dades/wp3-color_restoration/",
                                                            tr("PointCloud Files (*.ply)"));
 
     QString fileNameFinal = QFileDialog::getSaveFileName(this,
-                                                       tr("Final..."), "/home/imanol/data/wp3-color_restoration/",
+                                                       tr("Final..."), "/home/imanol/Dades/wp3-color_restoration/",
                                                        tr("PointCloud Files (*.ply)"));
 
 
