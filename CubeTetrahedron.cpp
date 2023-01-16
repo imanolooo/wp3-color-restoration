@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iostream>
 #include <array>
+#include <igl/colormap.h>
 
 #include "happly.h"
 
@@ -231,7 +232,7 @@ void CubeTetrahedron::export2PLY(const std::string &path, const std::string &pat
     plyOut2.write(pathTranf, happly::DataFormat::Binary);
 }
 
-void CubeTetrahedron::export2PLYTetras(const std::string &path) {
+void CubeTetrahedron::export2PLYTetras(const std::string &path, const std::string &pathTranf){
     std::vector<std::array<double,3>> positions;
     positions.reserve(_vertices.size());
     for(const auto &v : _vertices)
@@ -250,6 +251,25 @@ void CubeTetrahedron::export2PLYTetras(const std::string &path) {
     plyOut.addFaceIndices(faces);
 
     plyOut.write(path, happly::DataFormat::Binary);
+
+    positions.clear();
+    positions.reserve(_updatedVertices.size());
+    for(const auto &v : _updatedVertices)
+    positions.push_back({v[0], v[1], v[2]});
+    happly::PLYData plyOutTransf;
+    plyOut.addVertexPositions(positions);
+    //plyOut.addVertexColors(colors);
+    //plyOut.addFaceIndices(_faces);
+    faces.clear();
+    for(const auto &t : _tetras) {
+    faces.push_back({t[0], t[1], t[3]});
+    faces.push_back({t[0], t[2], t[1]});
+    faces.push_back({t[1], t[2], t[3]});
+    faces.push_back({t[0], t[3], t[2]});
+    }
+    plyOutTransf.addFaceIndices(faces);
+
+    plyOutTransf.write(pathTranf, happly::DataFormat::Binary);
 }
 
 bool CubeTetrahedron::computeBarycentricCoordinates(const Eigen::Vector3d &v1, const Eigen::Vector3d &v2, const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
@@ -345,5 +365,120 @@ float CubeTetrahedron::Determinant4x4(const Eigen::Vector3d &v1, const Eigen::Ve
                 v1.z()*v2.x()*v3.y() - v1.x()*v2.z()*v3.y() -
                 v1.y()*v2.x()*v3.z() + v1.x()*v2.y()*v3.z();
     return det;
+}
+
+void CubeTetrahedron::exportDeformationFactor(const std::string &pathDF, const std::string &pathInv) {
+    //create the structures
+    std::vector<std::array<double,3>> positions, colors, colorsInv;
+    std::vector<float> deformationFactors;
+    std::vector<bool> inversions;
+    int size = (_resolution[0]+1)*(_resolution[1]+1)*(_resolution[2]+1) + (_resolution[0])*(_resolution[1])*(_resolution[2]);
+    positions.reserve(size);
+    colors.reserve(size);
+    deformationFactors.reserve(size);
+    inversions.reserve(size);
+    colorsInv.reserve(size);
+
+    //for-each cell of the grid compute the deformation factor
+    auto index = 0;
+    float sMin = std::numeric_limits<float>::max();
+    float sMax = std::numeric_limits<float>::min();
+    for(auto i = 0; i < _resolution[0]; ++i) {
+        for(auto j = 0; j < _resolution[1]; ++j) {
+            for(auto k = 0; k < _resolution[2]; ++k) {
+                //compute the indices
+                unsigned int v0 = index;
+                unsigned int v1 = index+1;
+                unsigned int v2 = index+(_resolution[2]+1);
+                unsigned int v3 = index+(_resolution[2]+1)*(_resolution[1]+1);
+                index++;
+
+                //create the vertices
+                Eigen::Vector3f A(_vertices[v0][0], _vertices[v0][1], _vertices[v0][2]);
+                Eigen::Vector3f B(_vertices[v1][0], _vertices[v1][1], _vertices[v1][2]);
+                Eigen::Vector3f C(_vertices[v2][0], _vertices[v2][1], _vertices[v2][2]);
+                Eigen::Vector3f D(_vertices[v3][0], _vertices[v3][1], _vertices[v3][2]);
+                Eigen::Vector3f At(_updatedVertices[v0][0], _updatedVertices[v0][1], _updatedVertices[v0][2]);
+                Eigen::Vector3f Bt(_updatedVertices[v1][0], _updatedVertices[v1][1], _updatedVertices[v2][2]);
+                Eigen::Vector3f Ct(_updatedVertices[v2][0], _updatedVertices[v2][1], _updatedVertices[v2][2]);
+                Eigen::Vector3f Dt(_updatedVertices[v3][0], _updatedVertices[v3][1], _updatedVertices[v3][2]);
+
+                //compute the vector bases
+                Eigen::Vector3f u = B - A;
+                Eigen::Vector3f v = C - A;
+                Eigen::Vector3f w = D - A;
+                Eigen::Vector3f ut = Bt - At;
+                Eigen::Vector3f vt = Ct - At;
+                Eigen::Vector3f wt = Dt - At;
+                Eigen::Matrix3f M, Mt;
+                M << u, v, w;
+                Mt << ut, vt, wt;
+
+                //compute the transformation matrix
+                Eigen::Matrix3f T = Mt * M.inverse();
+
+                //compute the SVD
+                Eigen::JacobiSVD<Eigen::Matrix3f> svd(T);//sorted in decreasing order
+                float s1 = svd.singularValues()[0];
+                float s2 = svd.singularValues()[1];
+                float s3 = svd.singularValues()[2];
+
+                //compute the deformation factor
+                float df = s1;//it will depends on the desired metric
+                deformationFactors.push_back(df);
+                sMax = std::max(sMax, df);
+                sMin = std::min(sMin, df);
+
+                //check if there is inversion
+                Eigen::Matrix4f Cell, CellT;
+                Cell.row(0) << A, 1;
+                Cell.row(1) << B, 1;
+                Cell.row(2) << C, 1;
+                Cell.row(3) << D, 1;
+                CellT.row(0) << At, 1;
+                CellT.row(1) << Bt, 1;
+                CellT.row(2) << Ct, 1;
+                CellT.row(3) << Dt, 1;
+                float detCell = Cell.determinant();
+                float detCellT = CellT.determinant();
+                inversions.push_back(detCell*detCellT < 0.f);
+
+                //fill positions structure
+                positions.push_back({_vertices[v0][0], _vertices[v0][1], _vertices[v0][2]});
+            }
+            index++;
+        }
+        index += _resolution[2] + 1;
+    }
+
+    //prepare data and convert deformation factor to color
+    for(const auto &df : deformationFactors) {
+        //Eigen::MatrixXf color;
+        //Eigen::MatrixXf value;
+        //value << df;
+        float r,g,b;
+        igl::colormap(igl::COLOR_MAP_TYPE_JET,(df-sMin)/(sMax-sMin), r, g, b);
+        /*float r = color(0,0);
+        float g = color(0,1);
+        float b = color(0,2);*/
+        colors.push_back({r,g,b});
+    }
+    for(const auto &inv : inversions) {
+        if(inv)
+            colorsInv.push_back({1,0,0});
+        else
+            colorsInv.push_back({0,0,1});
+    }
+
+
+    //export
+    happly::PLYData ply, plyInv;
+    ply.addVertexPositions(positions);
+    ply.addVertexColors(colors);
+    std::string pathName = pathDF;
+    ply.write(pathName, happly::DataFormat::ASCII);
+    ply.addVertexColors(colorsInv);
+    pathName = pathInv;
+    ply.write(pathName, happly::DataFormat::ASCII);
 }
 

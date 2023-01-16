@@ -9,6 +9,25 @@
 #include <igl/colormap.h>
 #include "happly.h"
 
+template<class Matrix>
+void write_matrix(const char* filename, const Matrix& matrix){
+    std::ofstream out(filename,std::ios::out /*| std::ios::binary*/ | std::ios::trunc);
+    typename Matrix::Index rows=matrix.rows(), cols=matrix.cols();
+    out.write((char*) (&rows), sizeof(typename Matrix::Index));
+    out.write((char*) (&cols), sizeof(typename Matrix::Index));
+    out.write((char*) matrix.data(), rows*cols*sizeof(typename Matrix::Scalar) );
+    out.close();
+}
+template<class Matrix>
+void read_matrix(const char* filename, Matrix& matrix){
+    std::ifstream in(filename,std::ios::in /*| std::ios::binary*/);
+    typename Matrix::Index rows=0, cols=0;
+    in.read((char*) (&rows),sizeof(typename Matrix::Index));
+    in.read((char*) (&cols),sizeof(typename Matrix::Index));
+    matrix.resize(rows, cols);
+    in.read( (char *) matrix.data() , rows*cols*sizeof(typename Matrix::Scalar) );
+    in.close();
+}
 
 ColorTransformation::ColorTransformation(const std::vector<float> &dim, const std::vector<float> &orig, const std::vector<int> &res) {
     _ct = CubeTetrahedron(dim, orig, res);
@@ -42,29 +61,7 @@ void ColorTransformation::updateControlPoint(int index, std::vector<float> &pos)
 
 }
 
-void ColorTransformation::computeBiharmonicCoordinates() {
-    //V => Verts
-    Eigen::MatrixXd V(_ct.numVerts(),3);
-    for(auto i = 0; i < _ct.numVerts(); ++i) {
-        float x, y, z;
-        _ct.vert(i, x, y, z);
-        V(i,0) = x;
-        V(i,1) = y;
-        V(i,2) = z;
-    }
-
-    //T => Tetrahedrons
-    Eigen::MatrixXi T(_ct.numTetras(), 4);
-    for(auto i = 0; i < _ct.numTetras(); ++i) {
-        int v1, v2, v3, v4;
-        _ct.tetra(i, v1, v2, v3, v4);
-        T(i,0) = v1;
-        T(i,1) = v2;
-        T(i,2) = v3;
-        T(i,3) = v4;
-    }
-    //_ct.clearTetras();
-
+void ColorTransformation::prepareControlPoints() {
     //S => list of lists (of dim = 1 per points, dim > 1 per regions) of indexes of control points.
     //Control Points
     _S.clear();
@@ -120,9 +117,32 @@ void ColorTransformation::computeBiharmonicCoordinates() {
         //_S.push_back({0, _ct.res()[2], (_ct.res()[2]+1)*(_ct.res()[1]+1)-1, _ct.res()[2]+1});
 
     }
+}
+void ColorTransformation::computeBiharmonicCoordinates() {
+    //V => Verts
+    Eigen::MatrixXd V(_ct.numVerts(),3);
+    for(auto i = 0; i < _ct.numVerts(); ++i) {
+        float x, y, z;
+        _ct.vert(i, x, y, z);
+        V(i,0) = x;
+        V(i,1) = y;
+        V(i,2) = z;
+    }
+
+    //T => Tetrahedrons
+    Eigen::MatrixXi T(_ct.numTetras(), 4);
+    for(auto i = 0; i < _ct.numTetras(); ++i) {
+        int v1, v2, v3, v4;
+        _ct.tetra(i, v1, v2, v3, v4);
+        T(i,0) = v1;
+        T(i,1) = v2;
+        T(i,2) = v3;
+        T(i,3) = v4;
+    }
+    //_ct.clearTetras();
 
     //For 3D k needs to be 3.
-    int k = 0;
+    int k = 2;
 
     QElapsedTimer timer;
     timer.start();
@@ -130,6 +150,12 @@ void ColorTransformation::computeBiharmonicCoordinates() {
     igl::biharmonic_coordinates(V,T,_S,k,_W);
     std::cout << "Done in " << timer.elapsed() << std::endl;
 
+    write_matrix("weights.txt", _W);
+
+}
+
+void ColorTransformation::loadLastBiharmonicCoordinatesWeights() {
+    read_matrix("weights.txt", _W);
 }
 
 void ColorTransformation::updateColorTransformation() {
@@ -248,4 +274,10 @@ void ColorTransformation::exportWeights(const std::string path) {
         std::string pathName = path + file;
         ply.write(pathName, happly::DataFormat::ASCII);
     }
+
 }
+
+void ColorTransformation::exportDeformationFactors(const std::string &pathDF, const std::string &pathInv) {
+    _ct.exportDeformationFactor(pathDF, pathInv);
+}
+

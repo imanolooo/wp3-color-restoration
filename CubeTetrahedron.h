@@ -44,7 +44,8 @@ public:
     void tetra(const int i, int &v1, int &v2, int &v3, int &v4) const;
 
     void export2PLY(const std::string &path, const std::string &pathTranf);
-    void export2PLYTetras(const std::string &path);
+    void export2PLYTetras(const std::string &path, const std::string &pathTranf);
+    void exportDeformationFactor(const std::string &pathDF, const std::string &pathInv);
 
     bool look4BCInCube(const std::vector<float> &p, const int indexCell, int &iv1, int &iv2, int &iv3, int &iv4, float &bc1, float &bc2, float &bc3, float &bc4);
 private:

@@ -186,6 +186,7 @@
     </property>
     <addaction name="actionColor_Transformation"/>
     <addaction name="actionColor_Transformation_3D"/>
+    <addaction name="actionLoad_Last_TColor_Transformation_3D"/>
     <addaction name="actionCompute_LAB"/>
     <addaction name="actionPrint_Transformation_Errors"/>
     <addaction name="actionTest_Transformation_on_Images"/>
@@ -200,6 +201,7 @@
     <addaction name="actionExport_transf_per_zone"/>
     <addaction name="actionExport_transf_per_L"/>
     <addaction name="actionExport_weights"/>
+    <addaction name="actionExport_deformation_factors"/>
    </widget>
    <addaction name="menuLoad_Image"/>
    <addaction name="menuExports"/>
@@ -291,6 +293,16 @@
   <action name="actionExport_weights">
    <property name="text">
     <string>Export weights...</string>
+   </property>
+  </action>
+  <action name="actionExport_deformation_factors">
+   <property name="text">
+    <string>Export deformation factors...</string>
+   </property>
+  </action>
+  <action name="actionLoad_Last_TColor_Transformation_3D">
+   <property name="text">
+    <string>Load Last TColor Transformation 3D...</string>
    </property>
   </action>
  </widget>

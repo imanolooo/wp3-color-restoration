@@ -17,13 +17,16 @@ public:
 
     void setControlPoints(std::vector<std::vector<float> > &cp);
     void updateControlPoint(int index, std::vector<float> &pos);
+    void prepareControlPoints();
     void computeBiharmonicCoordinates();
+    void loadLastBiharmonicCoordinatesWeights();
     void updateColorTransformation();
 
     void print();
     void export2PLY(const std::string path, const std::string pathTransf) { _ct.export2PLY(path, pathTransf); }
-    void export2PLYTetras(const std::string path) { _ct.export2PLYTetras(path); }
+    void export2PLYTetras(const std::string path, const std::string pathTransf) { _ct.export2PLYTetras(path, pathTransf); }
     void exportWeights(const std::string path);
+    void exportDeformationFactors(const std::string &pathDF, const std::string &pathInv);
 
     CubeTetrahedron* cubeTetra() { return &_ct; }
 

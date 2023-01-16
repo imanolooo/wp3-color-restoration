@@ -41,6 +41,7 @@ public slots:
     void on_actionExport_transf_per_zone_triggered();
     void on_actionExport_transf_per_L_triggered();
     void on_actionExport_weights_triggered();
+    void on_actionExport_deformation_factors_triggered();
 
     void on_actionFit_in_view_triggered();
     void on_actionZoom_in_triggered();
@@ -48,6 +49,7 @@ public slots:
 
     void on_actionColor_Transformation_triggered();
     void on_actionColor_Transformation_3D_triggered();
+    void on_actionLoad_Last_TColor_Transformation_3D_triggered();
     void on_actionCompute_LAB_triggered();
     void on_actionPrint_Transformation_Errors_triggered();
     void on_actionTest_Transformation_on_Images_triggered();

@@ -48,8 +48,8 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::loadPickedColors() {
-    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego171122.json";
-    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego171122.json";
+    std::string srcPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteSrcColors-RoserBego241122WithWhite2.json";
+    std::string dstPaletteFile = "/home/imanol/Dades/wp3-color_restoration/json/PaletteDstColors-RoserBego241122HuedWithWhite2.json";
 
     std::ifstream fSrc(srcPaletteFile);
     std::ifstream fDst(dstPaletteFile);
@@ -339,7 +339,7 @@ void MainWindow::on_actionExport_ColorTransf_to_PLY_triggered() {
 
     std::cout << "Exporting transformations to PLY..." << std::flush;
     if(_ct2D != NULL)   _ct2D->export2PLY(fileNameOri.toStdString(), fileNameTransf.toStdString());
-    if(_ct3D != NULL)   _ct3D->export2PLY(fileNameOri.toStdString(), fileNameTransf.toStdString());
+    if(_ct3D != NULL)   _ct3D->export2PLYTetras(fileNameOri.toStdString(), fileNameTransf.toStdString());
     std::cout << "Done!" << std::endl;
 }
 
@@ -565,6 +565,7 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
         std::cout << "Initializing the color control points..." << std::endl;
         _ct3D->setControlPoints(sourceColors);//, targetColors);
 
+        _ct3D->prepareControlPoints();
         _ct3D->computeBiharmonicCoordinates();
     }
     _need2ComputeBHC = false;
@@ -611,8 +612,73 @@ void MainWindow::on_actionColor_Transformation_3D_triggered() {
     else
         correctedRadioButtonClicked(true);
     std::cout << "Transformation finished!" << std::endl;
+}
 
+void MainWindow::on_actionLoad_Last_TColor_Transformation_3D_triggered() {
+    ui->correctedRadioButton->setEnabled(true);
 
+    std::vector<std::vector<float>> sourceColors;
+    std::vector<std::vector<float>> targetColors;
+    computeSourceAndTargetColors(sourceColors, targetColors, true);
+
+    if(_need2ComputeBHC) {
+        std::cout << "Building the color transformation structures..." << std::endl;
+        std::vector<float> dim = {100, 255, 255};
+        std::vector<float> orig = {0, -128, -128};
+        std::vector<int> res = {30, 30, 30};
+
+        _ct3D = new ColorTransformation(dim, orig, res);
+
+        std::cout << "Initializing the color control points..." << std::endl;
+        _ct3D->setControlPoints(sourceColors);//, targetColors);
+
+        _ct3D->prepareControlPoints();
+        _ct3D->loadLastBiharmonicCoordinatesWeights();
+    }
+    _need2ComputeBHC = false;
+
+    std::cout << "Updating control points..." << std::endl;
+    for(auto i = 0; i < targetColors.size(); ++i)
+        _ct3D->updateControlPoint(i, targetColors[i]);
+    _ct3D->updateColorTransformation();
+
+    QElapsedTimer timer;
+    timer.start();
+    //_ct3D->print();
+    std::cout << "Transforming the image..." << std::endl;
+    _correctedImage = _image;
+    for(auto i = 0; i < _correctedImage.width(); ++i) {
+        for(auto j = 0; j < _correctedImage.height(); ++j) {
+            if(_maskImage.width() == 0 || qRed(_maskImage.pixel(i,j)) > 128) {
+                //std::cout << i << ", " << j << std::endl;
+                color::rgb<float> rgb({ qRed(_correctedImage.pixel(i,j))/255.f, qGreen(_correctedImage.pixel(i,j))/255.f, qBlue(_correctedImage.pixel(i,j))/255.f});
+                color::lab<float> lab;
+                lab = rgb;
+                std::vector<float> p({lab[0], lab[1], lab[2]});
+                std::vector<float> pt({0, 0, 0});
+                //std::cout << "Presampling" << std::endl;
+                _ct3D->sample(p, pt);
+                //std::cout << "Transformation: " << p[0] << ", " << p[1] << ", " << p[2] << " => " << pt[0] << ", " << pt[1] << ", " << pt[2] << std::endl;
+                //pt[0] = lab[0];//keeping the lightness of the source
+                lab = color::lab<float>({pt[0], pt[1], pt[2]});
+                rgb = lab;
+                _correctedImage.setPixelColor(i, j, QColor(std::min(255.f,std::max(0.f,rgb[0]*255)),
+                                                           std::min(255.f,std::max(0.f,rgb[1]*255)),
+                                                           std::min(255.f,std::max(0.f,rgb[2]*255))));
+            }
+        }
+    }
+    std::cout << "Done in " << timer.elapsed() << std::endl;
+
+    std::cout << "Saving the images..." << std::endl;
+    _image.save("sourceImage.png");
+    _correctedImage.save("targetImage.png");
+
+    if(!ui->correctedRadioButton->isChecked())
+        ui->correctedRadioButton->setChecked(true);
+    else
+        correctedRadioButtonClicked(true);
+    std::cout << "Transformation finished!" << std::endl;
 }
 
 void MainWindow::on_actionCompute_LAB_triggered() {
@@ -827,11 +893,14 @@ void MainWindow::on_actionExport_Palette_to_PLY_triggered() {
     colors.push_back({65./255.,1.,86./255.});//light green
     colors.push_back({174./255.,174./255.,174./255.});//light grey
     colors.push_back({116./255.,116./255.,116./255.});//middle grey
+    colors.push_back({255./255.,102./255.,0./255.});//orange
     colors.push_back({1,1,0.8});//pale ocher //aka yellow super light ocher
     colors.push_back({1.,0,1.});//pink
     colors.push_back({1.,0,0});//red
     colors.push_back({223./255.,223./255.,223./255.});//white
+    colors.push_back({1,1,1});//white2
     colors.push_back({1,230./255.,163./255.});//yellow light ocher
+    colors.push_back({1,240./255.,80./255.});//yellow middle ocher
     colors.push_back({1.,253./255.,0});//yellow ocher
 
 
@@ -887,7 +956,8 @@ void MainWindow::on_actionTest_Transformation_on_Images_triggered() {
         if(imagePath.find("corrected") == std::string::npos) {
             std::cout << "Handling " << imagePath << std::endl;
             loadImage(imagePath);
-            on_actionColor_Transformation_3D_triggered();
+            if(_ct2D != NULL) on_actionColor_Transformation_triggered();
+            else if(_ct3D != NULL) on_actionColor_Transformation_3D_triggered();
             std::string correctedPath = imagePath.substr(0, imagePath.find_last_of(".")) + "-corrected.png";
             _correctedImage.save(correctedPath.c_str());
         }
@@ -921,13 +991,13 @@ void MainWindow::exportSelection(QPoint start, QPoint end) {
             color::lab<double> lab;
             lab = rgb;
             positions.push_back({lab[0], lab[1], lab[2]});
-            colors.push_back({rgb[0], rgb[1], rgb[2]});
+            colors.push_back({0,1,0/*rgb[0], rgb[1], rgb[2]*/});
 
             color = _correctedImage.pixel(i,j);
             rgb = color::rgb<double>({ qRed(color)/255., qGreen(color)/255., qBlue(color)/255.});
             lab = rgb;
             positions.push_back({lab[0], lab[1], lab[2]});
-            colors.push_back({rgb[0], rgb[1], rgb[2]});
+            colors.push_back({1,0,0/*rgb[0], rgb[1], rgb[2]*/});
             positionsFinal.push_back({lab[0], lab[1], lab[2]});
             colorsFinal.push_back({rgb[0], rgb[1], rgb[2]});
         }
@@ -1032,5 +1102,17 @@ void MainWindow::on_actionExport_weights_triggered() {
     std::cout << "Exporting weights..." << std::endl;
     _ct3D->exportWeights("/home/imanol/Dades/wp3-color_restoration/weights/");
 
+    std::cout << "Done!" << std::endl;
+}
+
+void MainWindow::on_actionExport_deformation_factors_triggered() {
+    std::cout << "Exporting deformation factors..." << std::flush;
+    QString fileName = QFileDialog::getSaveFileName(this,
+                                                    tr("Save deformation factors pointcloud..."), "/home/imanol/Dades/wp3-color_restoration/deformationFactors/",
+                                                    tr("Point Clouds (*.ply)"));
+    QString fileNameInv = QFileDialog::getSaveFileName(this,
+                                                    tr("Save inversions pointcloud..."), "/home/imanol/Dades/wp3-color_restoration/deformationFactors/",
+                                                    tr("Point Clouds (*.ply)"));
+    _ct3D->exportDeformationFactors(fileName.toStdString(), fileNameInv.toStdString());
     std::cout << "Done!" << std::endl;
 }
